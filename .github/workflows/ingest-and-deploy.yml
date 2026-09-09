@@ -23,15 +23,18 @@ permissions:
 
 jobs:
   build:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
       contents: write
     outputs:
       deploy: ${{ steps.changed.outputs.deploy }}
+      signature: ${{ steps.changed.outputs.signature }}
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: main
           fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
@@ -123,7 +126,7 @@ jobs:
         uses: actions/deploy-pages@v4
 
   record-publication:
-    needs: deploy
+    needs: [build, deploy]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -133,6 +136,8 @@ jobs:
           ref: main
           fetch-depth: 0
       - name: Record successful publication
+        env:
+          DEPLOYED_SIGNATURE: ${{ needs.build.outputs.signature }}
         run: |
           python scripts/publication_state.py deployed
           git config user.name 'github-actions[bot]'

@@ -15,7 +15,10 @@ signature = {
 }
 previous_path = root / "data/publication_state.json"
 if sys.argv[1] == "deployed":
-    previous_path.write_text(json.dumps(signature, indent=2) + "\n", encoding="utf-8")
+    deployed = json.loads(os.environ["DEPLOYED_SIGNATURE"])
+    if set(deployed) != {"content", "health", "day"}:
+        raise SystemExit("Invalid publication signature")
+    previous_path.write_text(json.dumps(deployed, indent=2) + "\n", encoding="utf-8")
     print("Successful publication recorded.")
 elif sys.argv[1] == "before":
     root.joinpath("tmp").mkdir(exist_ok=True)
@@ -26,4 +29,5 @@ else:
     if os.getenv("GITHUB_OUTPUT"):
         with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
             output.write(f"deploy={str(changed).lower()}\n")
+            output.write("signature=" + json.dumps(signature, separators=(",", ":")) + "\n")
     print("Publishing updated intelligence." if changed else "Content and health unchanged; daily freshness publication already completed.")
