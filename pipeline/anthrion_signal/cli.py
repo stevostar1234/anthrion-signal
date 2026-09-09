@@ -15,7 +15,7 @@ from .retention import archive_expired, restore_matching
 from .utils import atomic_bytes, atomic_json, digest, parse_date, read_json
 
 
-def _collect(source, previous_state, now, config):
+def _collect(source, previous_state, now, config, previous_signals=None):
     state = previous_state.get(source["id"], {})
     health = SourceHealth(id=source["id"], name=source["name"], website=source["website"], enabled=source["enabled"],
                           status="not_checked", last_success=state.get("last_success"), last_attempt=now.isoformat())
@@ -31,11 +31,15 @@ def _collect(source, previous_state, now, config):
             health.last_success = now.isoformat()
             next_state["last_success"] = now.isoformat()
         normalised, rejected = [], 0
-        for raw in result.records:
+        families = {s.ocid: s for s in previous_signals or [] if s.ocid}
+        for raw in sorted(result.records, key=lambda r: r.data.get("date") or ""):
             try:
-                signal = NORMALISERS[raw.kind](raw)
+                signal = (NORMALISERS[raw.kind](raw, prior=families.get(raw.data.get("ocid")))
+                          if raw.kind == "ocds" else NORMALISERS[raw.kind](raw))
                 if signal:
                     normalised.append(signal)
+                    if signal.ocid:
+                        families[signal.ocid] = signal
             except (ValueError, KeyError, TypeError):
                 rejected += 1
         # A source schema regression must not silently advance its retrieval checkpoint.
@@ -117,7 +121,7 @@ def run(root, args):
         if not source["enabled"]:
             health[source["id"]].status = "disabled"
     with ThreadPoolExecutor(max_workers=3) as pool:
-        futures = [pool.submit(_collect, source, state, now, config) for source in selected]
+        futures = [pool.submit(_collect, source, state, now, config, previous) for source in selected]
         for future in as_completed(futures):
             sid, records, new_state, status, count = future.result()
             incoming.extend(records)

@@ -81,6 +81,8 @@ def classify(stage, title, description, notice_type=None, framework=None):
     if stage in ("award", "implementation", "contract"):
         return "AWARD"
     if stage == "planning":
+        if re.search(r"\brfi\b|request for information", text):
+            return "RFI"
         if notice_type == "UK2" or re.search(r"market engag|prior information|pre.market|soft market", text):
             return "EARLY_MARKET_ENGAGEMENT"
         return "PIPELINE"
@@ -93,13 +95,13 @@ def classify(stage, title, description, notice_type=None, framework=None):
     return "LIVE_TENDER"
 
 
-def normalise_ocds(raw):
+def normalise_ocds(raw, prior=None):
     r, source = raw.data, raw.source
     tender = r.get("tender") or {}
     awards = r.get("awards") or []
     contracts = r.get("contracts") or []
     docs = documents_in(r)
-    title = tender.get("title") or r.get("planning", {}).get("project", {}).get("title")
+    title = tender.get("title") or r.get("planning", {}).get("project", {}).get("title") or (prior.title if prior else None)
     if not title:
         return None
     description = tender.get("description") or ""
@@ -107,6 +109,8 @@ def normalise_ocds(raw):
     if lots:
         lot_text = " ".join(f"Lot {lot.get('id')}: {lot.get('title', '')}. {lot.get('description', '')}" for lot in lots)
         description = description + " " + lot_text
+    if not description.strip() and prior:
+        description = prior.description
     party = next((p for p in r.get("parties", []) if "buyer" in (p.get("roles") or [])), {})
     buyer = r.get("buyer") or party
     address = party.get("address") or {}

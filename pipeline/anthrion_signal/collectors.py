@@ -251,6 +251,7 @@ def collect_govuk(source, state, frozen, http, settings, terms):
     seen = set()
     try:
         query_state = dict(state.get("queries", {}))
+        result.state["queries"] = query_state
         per_query_budget = max(1, settings["max_pages"] // len(terms["govuk_queries"]))
         for query in terms["govuk_queries"]:
             checkpoint = query_state.get(query, {})

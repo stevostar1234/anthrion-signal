@@ -4,10 +4,10 @@ from pathlib import Path
 import httpx
 import pytest
 
-from anthrion_signal.collectors import Http, SourceUnavailable, reconstruct_notice
+from anthrion_signal.collectors import Http, RawRecord, SourceUnavailable, reconstruct_notice
 from anthrion_signal.dedupe import reconcile
 from anthrion_signal.intelligence import analyse_candidates, score, validate_grounding
-from anthrion_signal.normalise import set_hashes
+from anthrion_signal.normalise import set_hashes, normalise_ocds, classify
 from anthrion_signal.retention import archive_expired, read_archive, restore_matching
 from anthrion_signal.utils import atomic_json, read_json, iso
 
@@ -40,6 +40,28 @@ def test_distinct_same_source_ocids_do_not_merge_on_reused_reference(signal):
     other.id, other.ocid = "distinct-procurement", "ocds-different-family"
     records, _, _ = reconcile([], [signal, other])
     assert len(records) == 2
+
+
+def test_sparse_cancellation_uses_known_family_scope(signal, source, now, config):
+    raw = RawRecord({"id": "cancel-2026", "ocid": signal.ocid, "date": now.isoformat(),
+                     "tag": ["tenderCancellation"], "tender": {"status": "cancelled"}}, source, now.isoformat())
+    update = normalise_ocds(raw, prior=signal)
+    assert update.title == signal.title
+    assert update.status == "cancelled"
+    assert update.provenance[0].release_id == "cancel-2026"
+    merged, _, _ = reconcile([signal], [update])
+    assert score(merged[0], config, now).recommendation == "LOW_PRIORITY"
+    assert classify("planning", "Case management RFI", "") == "RFI"
+
+
+def test_lot_only_scope_does_not_grow_on_repeated_collection(release, source, now):
+    release["tender"]["description"] = ""
+    release["tender"]["lots"] = [{"id": "1", "title": "Delivery", "description": "CRM implementation"}]
+    raw = RawRecord(release, source, now.isoformat())
+    first = normalise_ocds(raw)
+    second = normalise_ocds(raw, prior=first)
+    assert first.description == second.description
+    assert first.content_hash == second.content_hash
 
 
 def test_archive_preserves_provenance_and_restores_updates(signal, now, tmp_path):
