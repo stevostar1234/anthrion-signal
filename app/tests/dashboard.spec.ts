@@ -145,11 +145,13 @@ test('market picker scopes the feed and persists the selected market in the URL'
   await expect(page.getByRole('dialog', { name: 'Choose your market' })).toBeVisible()
   await expect(page.getByRole('textbox', { name: 'Search markets' })).toBeFocused()
   await expect(page.locator('.market-option')).toHaveCount(8)
-  expect(
-    await page
-      .locator('.market-symbol img')
-      .evaluateAll((images) => images.every((img) => (img as HTMLImageElement).naturalWidth > 0)),
-  ).toBe(true)
+  await expect
+    .poll(() =>
+      page
+        .locator('.market-symbol img')
+        .evaluateAll((images) => images.every((img) => (img as HTMLImageElement).naturalWidth > 0)),
+    )
+    .toBe(true)
   await page.screenshot({ path: `../artifacts/markets-${testInfo.project.name}.png` })
   await page.getByRole('button', { name: /United States North America/ }).click()
   await expect(page.getByRole('heading', { name: 'No signals for United States' })).toBeVisible()
@@ -288,6 +290,14 @@ test('light and dark workspaces meet automated accessibility checks', async ({
 }, testInfo) => {
   test.setTimeout(180000)
   const audit = async (state: string) => {
+    await page.evaluate(async () => {
+      await Promise.all(
+        document
+          .getAnimations()
+          .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity)
+          .map((animation) => animation.finished.catch(() => undefined)),
+      )
+    })
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
       .analyze()
