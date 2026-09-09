@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#101214" />
+    <meta name="theme-color" content="#f6f7f8" />
     <meta
       name="description"
       content="Evidence-led procurement and commercial opportunity intelligence for Anthrion. Discover, assess and track the opportunities that fit."
@@ -11,6 +11,12 @@
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <link rel="icon" type="image/svg+xml" href="%BASE_URL%assets/brand-mark.svg" />
     <title>Anthrion Signal | Opportunity Intelligence</title>
+    <script>
+      try {
+        const theme = JSON.parse(localStorage.getItem('anthrion-theme-v1'))
+        if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme
+      } catch {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

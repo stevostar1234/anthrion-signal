@@ -6,6 +6,8 @@ Evidence-grounded procurement and commercial opportunity intelligence for Anthri
 
 Start with **Top signals**, or choose live procurement, early engagement, pipeline, renewal, framework, funding or award views. Search across title, scope, buyer and reference. All filters, sorting, market selection and open signal links are URL-addressable.
 
+The market selector covers the UK, US, Italy, Nordics, Germany, Spain and Greece. Nordics groups Sweden, Finland, Denmark, Norway and Iceland. Only the UK is monitored currently; other markets show their actual coverage state without substituting UK notices. Market selection also scopes overview counts, saved opportunities, deadlines and source coverage. Light/dark appearance and comfortable/compact list density are remembered in the current browser.
+
 Open an opportunity to inspect its requirements, evidence, risks, documents and history. Fit and evidence confidence are separate. Unanalysed candidates show **Pending** and remain available for manual investigation. Unknown supplier eligibility never becomes an invented qualification or a hard blocker.
 
 Saved opportunities and saved views are personal to the current browser. Use the view-link control or CSV export to share with colleagues. Deadline export produces an `.ics` calendar event. No private notes or team activity are published. This is a public intelligence site, not a shared private CRM.
@@ -108,6 +110,8 @@ Default budget: 30 calls per run, including retries, two concurrent requests, pr
 The production workflow runs at **06:15, 10:15, 14:15, 18:15 and 22:15 Europe/London** with automatic DST handling. `workflow_dispatch` can collect immediately or redeploy existing data. Main-branch code pushes rebuild existing intelligence. Source state commits do not recursively trigger workflows.
 
 The workflow validates data, runs Python and UI tests, checks public output, builds the site, checks desktop/mobile browser flows, persists canonical state and deploys with the supported Pages artifact mechanism. Content or source-health changes publish immediately. Unchanged verified feeds publish once daily for freshness. A failed deployment is not recorded as successful and is retried on the next eligible run. Scheduled Actions can occasionally be delayed by GitHub; the UI reports actual publication/source times.
+
+Queued builds check out the current main branch, and successful publication records the exact signature of the artifact that was deployed. The browser suite also checks keyboard navigation, market persistence, narrow/short layouts and automated WCAG AA accessibility rules in both themes.
 
 ## Expanding markets
 

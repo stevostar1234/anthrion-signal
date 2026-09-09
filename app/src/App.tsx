@@ -26,16 +26,20 @@ import {
   Flag,
   Globe2,
   Layers3,
+  LayoutList,
   ListFilter,
   Menu,
+  Moon,
   Radar,
   RefreshCw,
   Search,
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
+  Sun,
   Target,
   TrendingUp,
+  Rows3,
   X,
 } from 'lucide-react'
 import type { Dataset, Filters, Signal } from './types'
@@ -45,6 +49,7 @@ import {
   csv,
   date,
   daysLeft,
+  deadlineCaption,
   defaults,
   download,
   filterSignals,
@@ -52,6 +57,9 @@ import {
   isLive,
   isNew,
   isUpdated,
+  markets,
+  matchesMarket,
+  marketIsEnabled,
   readFilters,
   recommendationLabels,
   safeURL,
@@ -135,16 +143,19 @@ function Modal({
   children,
   onClose,
   wide = false,
+  drawer = false,
 }: {
   title: string
   children: ReactNode
   onClose: () => void
   wide?: boolean
+  drawer?: boolean
 }) {
   const ref = useRef<HTMLDialogElement>(null)
   useEffect(() => {
     const el = ref.current
     el?.showModal()
+    el?.querySelector<HTMLElement>('[data-autofocus]')?.focus()
     const previous = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
@@ -155,7 +166,7 @@ function Modal({
   return (
     <dialog
       ref={ref}
-      className={`modal ${wide ? 'wide' : ''}`}
+      className={`modal ${wide ? 'wide' : ''} ${drawer ? 'drawer' : ''}`}
       aria-label={title}
       onCancel={onClose}
       onClick={(e) => {
@@ -181,6 +192,17 @@ export default function App() {
   const [saved, setSaved, storageError] = useLocal<string[]>('anthrion-saved-v1', [], validSaved)
   const [views, setViews] = useLocal<LocalView[]>('anthrion-views-v1', [], validViews)
   const [showFilters, setShowFilters] = useState(false)
+  const [showMarkets, setShowMarkets] = useState(false)
+  const [theme, setTheme] = useLocal<'light' | 'dark'>(
+    'anthrion-theme-v1',
+    'light',
+    (value): value is 'light' | 'dark' => value === 'light' || value === 'dark',
+  )
+  const [density, setDensity] = useLocal<'comfortable' | 'compact'>(
+    'anthrion-density-v1',
+    'comfortable',
+    (value): value is 'comfortable' | 'compact' => value === 'comfortable' || value === 'compact',
+  )
   const [menuOpen, setMenuOpen] = useState(false)
   const [selected, setSelected] = useState<string | null>(() =>
     new URLSearchParams(location.search).get('signal'),
@@ -194,7 +216,47 @@ export default function App() {
   const [page, setPage] = useState(1)
   const [time, setTime] = useState(Date.now())
   const searchRef = useRef<HTMLInputElement>(null)
+  const sidebarRef = useRef<HTMLElement>(null)
   const abortRef = useRef<AbortController | null>(null)
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute('content', theme === 'dark' ? '#17191c' : '#f6f7f8')
+  }, [theme])
+  useEffect(() => {
+    if (!menuOpen) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    sidebarRef.current?.querySelector<HTMLElement>('a, button')?.focus()
+    const closeOnResize = () => {
+      if (window.innerWidth > 1000) setMenuOpen(false)
+    }
+    const keydown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false)
+      if (event.key !== 'Tab') return
+      const controls = Array.from(
+        sidebarRef.current?.querySelectorAll<HTMLElement>('a, button:not(:disabled)') || [],
+      )
+      const next = controls[0]
+      const last = controls[controls.length - 1]
+      if (event.shiftKey && document.activeElement === next) {
+        event.preventDefault()
+        last?.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        next?.focus()
+      }
+    }
+    window.addEventListener('resize', closeOnResize)
+    window.addEventListener('keydown', keydown)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('resize', closeOnResize)
+      window.removeEventListener('keydown', keydown)
+      document.querySelector<HTMLButtonElement>('.mobile-menu')?.focus()
+    }
+  }, [menuOpen])
   const load = useCallback(async () => {
     abortRef.current?.abort()
     const controller = new AbortController()
@@ -292,8 +354,7 @@ export default function App() {
     setPage((p) => Math.min(p, Math.max(1, Math.ceil(filtered.length / 15))))
   }, [filtered.length])
   const marketSignals = useMemo(
-    () =>
-      (data?.signals || []).filter((s) => !filters.market || s.countries.includes(filters.market)),
+    () => (data?.signals || []).filter((s) => matchesMarket(s, filters.market)),
     [data, filters.market],
   )
   const live = marketSignals.filter((s) => isLive(s, time))
@@ -301,6 +362,20 @@ export default function App() {
     .filter((s) => daysLeft(s, time) !== null && daysLeft(s, time)! <= 14)
     .sort((a, b) => Date.parse(a.deadline_at!) - Date.parse(b.deadline_at!))
   const activeSources = data?.sources.filter((s) => s.enabled) || []
+  const market = markets.find((m) => m.id === filters.market)
+  const marketName =
+    market?.name ||
+    data?.markets[filters.market]?.name ||
+    (filters.market ? `Market ${filters.market}` : 'All markets')
+  const marketEnabled = data
+    ? marketIsEnabled(filters.market, data.markets)
+    : filters.market === 'GB'
+  const marketSources =
+    filters.market === 'GB' || !filters.market
+      ? activeSources
+      : activeSources.filter((source) =>
+          marketSignals.some((s) => s.provenance.some((p) => p.source === source.id)),
+        )
   const healthy = activeSources.filter((s) => s.status === 'healthy')
   const fresh = !!data && time - Date.parse(data.generated_at) < 26 * 3600000
   const activeFilterCount = Object.entries(filters).filter(
@@ -328,10 +403,15 @@ export default function App() {
         .length,
     ]),
   )
+  const switchMarket = (id: string) => {
+    update({ market: id, source: '', region: '', buyer: '', cpv: '' })
+    setCompare([])
+    setShowMarkets(false)
+  }
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="app-shell">
+      <div className={`app-shell density-${density}`}>
         <a className="skip-link" href="#main">
           Skip to opportunities
         </a>
@@ -342,7 +422,11 @@ export default function App() {
             onClick={() => setMenuOpen(false)}
           />
         )}
-        <aside className={`sidebar ${menuOpen ? 'is-open' : ''}`} aria-label="Main navigation">
+        <aside
+          ref={sidebarRef}
+          className={`sidebar ${menuOpen ? 'is-open' : ''}`}
+          aria-label="Main navigation"
+        >
           <a
             href={import.meta.env.BASE_URL}
             className="brand"
@@ -353,16 +437,14 @@ export default function App() {
           >
             <img src={`${import.meta.env.BASE_URL}assets/brand-mark.svg`} alt="" />
             <div>
-              <span>
-                anthrion<span className="brand-signal">signal</span>
-              </span>
-              <small>OPPORTUNITY INTELLIGENCE</small>
+              <span>anthrion</span>
+              <small>SIGNAL INTELLIGENCE</small>
             </div>
           </a>
           <div className="workspace-switch">
             <span className="workspace-monogram">A</span>
             <div>
-              Anthrion workspace<small>Commercial intelligence</small>
+              Anthrion workspace<small>Business development</small>
             </div>
             <ShieldCheck size={16} />
           </div>
@@ -385,14 +467,16 @@ export default function App() {
           <nav className="nav-list">
             <button
               className={filters.view === 'saved' ? 'active' : ''}
+              aria-current={filters.view === 'saved' ? 'page' : undefined}
               onClick={() => navigate('saved')}
             >
               <Bookmark size={17} />
               <span>Saved opportunities</span>
-              <small>{saved.filter((id) => data?.signals.some((s) => s.id === id)).length}</small>
+              <small>{saved.filter((id) => marketSignals.some((s) => s.id === id)).length}</small>
             </button>
             <button
               className={filters.view === 'updates' ? 'active' : ''}
+              aria-current={filters.view === 'updates' ? 'page' : undefined}
               onClick={() => navigate('updates')}
             >
               <Bell size={17} />
@@ -400,6 +484,7 @@ export default function App() {
             </button>
             <button
               className={filters.view === 'sources' ? 'active' : ''}
+              aria-current={filters.view === 'sources' ? 'page' : undefined}
               onClick={() => navigate('sources')}
             >
               <Globe2 size={17} />
@@ -459,73 +544,83 @@ export default function App() {
             <div className="account">
               <span className="avatar">A</span>
               <div>
-                Anthrion<small>European expertise. Global ambition.</small>
+                Anthrion<small>Commercial intelligence</small>
               </div>
             </div>
           </div>
         </aside>
 
-        <main id="main" className="main">
+        <main id="main" className="main" inert={menuOpen}>
           <header className="topbar">
             <div className="breadcrumb">
               <IconButton
                 label="Open navigation"
                 className="mobile-menu"
+                aria-expanded={menuOpen}
                 onClick={() => setMenuOpen(true)}
               >
                 <Menu size={20} />
               </IconButton>
-              <span>Workspace</span>
+              <span>Signal</span>
               <ChevronRight size={13} />
-              <strong>Intelligence</strong>
+              <strong>{listTitle}</strong>
             </div>
             <div className="topbar-actions">
-              <div className="market-select">
-                <Globe2 size={14} />
-                <select
-                  aria-label="Market"
-                  value={filters.market}
-                  onChange={(e) => update({ market: e.target.value })}
-                >
-                  <option value="">All monitored markets</option>
-                  {data ? (
-                    Object.entries(data.markets)
-                      .filter(([, m]) => m.enabled)
-                      .map(([code, m]) => (
-                        <option key={code} value={code}>
-                          {m.name}
-                        </option>
-                      ))
-                  ) : (
-                    <option value="GB">United Kingdom</option>
-                  )}
-                </select>
-                <ChevronDown size={12} />
-              </div>
-              <span className="topbar-divider" />
+              <button
+                className="market-trigger"
+                onClick={() => setShowMarkets(true)}
+                aria-label={`Choose market: ${marketName}`}
+                aria-haspopup="dialog"
+              >
+                {market && market.id !== 'NORDICS' ? (
+                  <img
+                    src={`${import.meta.env.BASE_URL}assets/flags/${market.id.toLowerCase()}.png`}
+                    alt=""
+                  />
+                ) : (
+                  <Globe2 size={17} />
+                )}
+                <span>{marketName}</span>
+                <ChevronDown size={14} />
+              </button>
+              <span className={`freshness-label ${fresh ? '' : 'overdue'}`}>
+                <span className={`status-dot ${fresh ? '' : 'amber'}`} />
+                {data
+                  ? `Updated ${date(data.generated_at, { hour: '2-digit', minute: '2-digit' })}`
+                  : 'Connecting'}
+              </span>
+              <IconButton
+                label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+                onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+              >
+                {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+              </IconButton>
               <IconButton label="Check for updates" onClick={() => void load()} disabled={loading}>
                 <RefreshCw size={16} className={loading ? 'spin' : ''} />
               </IconButton>
-              <button
-                className="profile-dot"
-                title="Anthrion workspace"
-                onClick={() => navigate('saved')}
-              >
-                A
-              </button>
             </div>
           </header>
           <div className="page-content">
             <section className="page-heading">
               <div>
-                <div className="eyebrow">
-                  <span className="tiny-cross">+</span> ANTHRION SIGNAL{' '}
-                  <span className="eyebrow-rule" /> STRATEGIC OPPORTUNITY INTELLIGENCE
-                </div>
+                <div className="eyebrow">ANTHRION SIGNAL</div>
                 <h1>
                   Opportunity intelligence<span className="heading-dot">.</span>
                 </h1>
-                <p>Procurement, early engagement and strategic buying signals.</p>
+                <p>
+                  {data
+                    ? marketEnabled
+                      ? `${marketSignals.length.toLocaleString('en-GB')} signals across ${marketSources.length} public sources`
+                      : `Monitoring is not yet active in ${marketName}.`
+                    : 'Loading your market'}
+                  <span className="heading-date">
+                    {date(new Date(time).toISOString(), {
+                      weekday: 'short',
+                      day: 'numeric',
+                      month: 'short',
+                    })}
+                  </span>
+                </p>
               </div>
               <div className="heading-actions">
                 <button
@@ -540,7 +635,7 @@ export default function App() {
                   Save view
                 </button>
                 <button
-                  className="button primary"
+                  className="button secondary export-button"
                   onClick={() => {
                     download(
                       `anthrion-signals-${new Date().toISOString().slice(0, 10)}.csv`,
@@ -549,7 +644,7 @@ export default function App() {
                     )
                     setToast(`${filtered.length} signals exported`)
                   }}
-                  disabled={!data}
+                  disabled={!data || !filtered.length}
                 >
                   <ArrowDownToLine size={15} />
                   Export signals
@@ -576,52 +671,49 @@ export default function App() {
             <section className="stats-strip" aria-label="Market overview">
               {[
                 {
-                  label: 'Signals indexed',
-                  value: marketSignals.length,
-                  icon: Radar,
-                  note: 'Across your market',
-                  color: '',
-                },
-                {
-                  label: 'New in 24 hours',
-                  value: marketSignals.filter((s) => isNew(s, time)).length,
+                  label: 'Top signals',
+                  value: counts.top || 0,
                   icon: Sparkles,
-                  note: 'Newly indexed signals',
+                  note: 'Prioritised for Anthrion',
                   color: 'mint',
+                  action: () => setFilters({ ...defaults, market: filters.market, view: 'top' }),
                 },
                 {
-                  label: 'Strong fit',
-                  value: marketSignals.filter(
-                    (s) =>
-                      s.fit_score !== null &&
-                      s.fit_score >= 82 &&
-                      s.confidence_score >= 65 &&
-                      s.signal_type !== 'AWARD',
-                  ).length,
-                  icon: Target,
-                  note: '82+ fit · 65%+ confidence',
-                  color: 'mint',
-                },
-                {
-                  label: 'Early opportunities',
-                  value: marketSignals.filter((s) => isEarly(s) || s.signal_type === 'PIPELINE')
-                    .length,
-                  icon: TrendingUp,
-                  note: 'Ahead of procurement',
-                  color: 'lilac',
-                },
-                {
-                  label: 'Live procurements',
+                  label: 'Live opportunities',
                   value: live.length,
-                  icon: CalendarClock,
-                  note: 'Open to action',
+                  icon: Target,
+                  note: 'Accepting responses',
                   color: 'ice',
+                  action: () => setFilters({ ...defaults, market: filters.market, view: 'live' }),
+                },
+                {
+                  label: 'Early engagement',
+                  value: marketSignals.filter(isEarly).length,
+                  icon: TrendingUp,
+                  note: 'Get ahead of procurement',
+                  color: 'lilac',
+                  action: () => setFilters({ ...defaults, market: filters.market, view: 'early' }),
+                },
+                {
+                  label: 'Closing this week',
+                  value: closing.filter((s) => daysLeft(s, time)! <= 7).length,
+                  icon: CalendarClock,
+                  note: 'In the next 7 days',
+                  color: 'amber',
+                  action: () =>
+                    setFilters({
+                      ...defaults,
+                      market: filters.market,
+                      view: 'live',
+                      deadline: '7',
+                      sort: 'deadline',
+                    }),
                 },
               ].map((stat) => (
-                <div className="stat" key={stat.label}>
+                <button className={`stat ${stat.color}`} key={stat.label} onClick={stat.action}>
                   <div className="stat-label">
-                    {stat.label}
                     <stat.icon size={14} />
+                    {stat.label}
                   </div>
                   <div className={`stat-value ${stat.color}`}>
                     {data ? (
@@ -630,12 +722,15 @@ export default function App() {
                       <span className="skeleton number" />
                     )}
                   </div>
-                  <span className="stat-note">{stat.note}</span>
-                </div>
+                  <span className="stat-note">
+                    {stat.note}
+                    <ArrowUpRight size={15} />
+                  </span>
+                </button>
               ))}
             </section>
             {filters.view === 'sources' && data ? (
-              <SourceCoverage data={data} now={time} />
+              <SourceCoverage data={{ ...data, sources: marketSources }} now={time} />
             ) : (
               <div className="content-grid">
                 <section className="signal-feed" aria-label="Opportunity feed">
@@ -645,32 +740,41 @@ export default function App() {
                       <span className="count-badge">{filtered.length}</span>
                     </div>
                     <div className="feed-heading-actions">
-                      <span className="updated-text">
-                        {data
-                          ? `Refreshed ${date(data.generated_at, { hour: '2-digit', minute: '2-digit' })}`
-                          : 'Loading'}
-                      </span>
+                      <label className="sort-control">
+                        <select
+                          aria-label="Sort opportunities"
+                          value={filters.sort}
+                          onChange={(e) => update({ sort: e.target.value })}
+                        >
+                          <option value="recommended">Recommended</option>
+                          <option value="fit">Highest fit</option>
+                          <option value="recent">Most recent</option>
+                          <option value="deadline">Closing soon</option>
+                          <option value="value">Highest value (GBP)</option>
+                          <option value="confidence">Highest confidence</option>
+                        </select>
+                        <ChevronDown size={12} />
+                      </label>
+                      <div className="density-switch" aria-label="Opportunity density">
+                        <IconButton
+                          label="Comfortable view"
+                          aria-pressed={density === 'comfortable'}
+                          onClick={() => setDensity('comfortable')}
+                        >
+                          <LayoutList size={17} />
+                        </IconButton>
+                        <IconButton
+                          label="Compact view"
+                          aria-pressed={density === 'compact'}
+                          onClick={() => setDensity('compact')}
+                        >
+                          <Rows3 size={17} />
+                        </IconButton>
+                      </div>
                       <IconButton label="Copy link to this view" onClick={() => void share()}>
                         <Copy size={14} />
                       </IconButton>
                     </div>
-                  </div>
-                  <div className="feed-tabs" aria-label="Quick views">
-                    {[
-                      { id: 'top', label: 'For you' },
-                      { id: 'live', label: 'Live opportunities' },
-                      { id: 'early', label: 'Early signals' },
-                      { id: 'all', label: 'All signals' },
-                    ].map((t) => (
-                      <button
-                        key={t.id}
-                        className={filters.view === t.id ? 'active' : ''}
-                        onClick={() => update({ view: t.id })}
-                      >
-                        {t.label}
-                        {t.id === 'top' && <Sparkles size={12} />}
-                      </button>
-                    ))}
                   </div>
                   <div className="toolbar">
                     <label className="search-box">
@@ -680,7 +784,7 @@ export default function App() {
                         aria-label="Search opportunities"
                         value={filters.q}
                         onChange={(e) => update({ q: e.target.value })}
-                        placeholder="Search signals, buyers or keywords..."
+                        placeholder="Search opportunities, buyers, keywords..."
                       />
                       {filters.q && (
                         <IconButton label="Clear search" onClick={() => update({ q: '' })}>
@@ -689,6 +793,7 @@ export default function App() {
                       )}
                     </label>
                     <button
+                      aria-label="Filters"
                       className={`button filter-button ${activeFilterCount ? 'has-filters' : ''}`}
                       onClick={() => setShowFilters(true)}
                     >
@@ -699,47 +804,63 @@ export default function App() {
                       )}
                     </button>
                   </div>
-                  <div className="results-line">
-                    <div>
-                      {activeFilterCount > 0 ? (
+                  <div className="capability-filters" aria-label="Filter by capability">
+                    <button
+                      className={!filters.capability ? 'active' : ''}
+                      aria-pressed={!filters.capability}
+                      onClick={() => update({ capability: '' })}
+                    >
+                      All capabilities
+                    </button>
+                    {(data?.capabilities || [])
+                      .filter((c) =>
+                        ['crm', 'ai', 'integration', 'data'].some((word) => c.id.includes(word)),
+                      )
+                      .slice(0, 4)
+                      .map((c) => (
                         <button
-                          className="clear-filters"
+                          key={c.id}
+                          className={filters.capability === c.id ? 'active' : ''}
+                          aria-pressed={filters.capability === c.id}
                           onClick={() =>
-                            setFilters({
-                              ...defaults,
-                              view: filters.view,
-                              q: filters.q,
-                              market: filters.market,
-                            })
+                            update({ capability: filters.capability === c.id ? '' : c.id })
                           }
                         >
-                          <X size={12} />
-                          Clear {activeFilterCount} filters
+                          {c.label
+                            .replace(' & customer experience', '')
+                            .replace(' & intelligent agents', ' & agents')
+                            .replace(' & MuleSoft', '')}
                         </button>
-                      ) : (
-                        <span>
-                          <span className="mini-status" />
-                          {filtered.length} {filtered.length === 1 ? 'signal' : 'signals'} in view
-                        </span>
-                      )}
-                    </div>
-                    <label>
-                      Sort by{' '}
-                      <select
-                        aria-label="Sort opportunities"
-                        value={filters.sort}
-                        onChange={(e) => update({ sort: e.target.value })}
-                      >
-                        <option value="recommended">Recommended</option>
-                        <option value="fit">Highest fit</option>
-                        <option value="recent">Most recent</option>
-                        <option value="deadline">Closing soon</option>
-                        <option value="value">Highest value (GBP)</option>
-                        <option value="confidence">Highest confidence</option>
-                      </select>
-                      <ChevronDown size={12} />
-                    </label>
+                      ))}
                   </div>
+                  {activeFilterCount > 0 && (
+                    <div className="results-line">
+                      <div>
+                        {activeFilterCount > 0 ? (
+                          <button
+                            className="clear-filters"
+                            onClick={() =>
+                              setFilters({
+                                ...defaults,
+                                view: filters.view,
+                                q: filters.q,
+                                market: filters.market,
+                              })
+                            }
+                          >
+                            <X size={12} />
+                            Clear {activeFilterCount} filters
+                          </button>
+                        ) : (
+                          <span>
+                            <span className="mini-status" />
+                            {filtered.length} {filtered.length === 1 ? 'signal' : 'signals'} in view
+                          </span>
+                        )}
+                      </div>
+                      <span>{filtered.length} matching signals</span>
+                    </div>
+                  )}
                   {loading && !data ? (
                     <div className="loading-feed" aria-label="Loading opportunities">
                       {[1, 2, 3].map((i) => (
@@ -774,22 +895,31 @@ export default function App() {
                   )}
                   {!loading && filtered.length === 0 && (
                     <div className="empty-state">
-                      <FileSearch size={32} />
+                      {marketEnabled ? <FileSearch size={32} /> : <Globe2 size={32} />}
                       <h3>
-                        {filters.view === 'saved'
-                          ? 'A place for your next move'
-                          : 'No matching signals'}
+                        {!marketEnabled
+                          ? `No signals for ${marketName}`
+                          : filters.view === 'saved'
+                            ? 'A place for your next move'
+                            : 'No matching signals'}
                       </h3>
                       <p>
-                        {filters.view === 'saved'
-                          ? 'Your saved opportunities will appear here.'
-                          : 'Try a broader search or adjust your filters.'}
+                        {!marketEnabled
+                          ? 'There are no monitored sources in this market yet.'
+                          : filters.view === 'saved'
+                            ? 'Your saved opportunities will appear here.'
+                            : 'Try a broader search or adjust your filters.'}
                       </p>
                       <button
                         className="button secondary"
-                        onClick={() => setFilters({ ...defaults, market: filters.market })}
+                        onClick={() =>
+                          !marketEnabled
+                            ? switchMarket('GB')
+                            : setFilters({ ...defaults, market: filters.market })
+                        }
                       >
-                        Explore top signals <ArrowRight size={14} />
+                        {marketEnabled ? 'Explore top signals' : 'Explore United Kingdom'}{' '}
+                        <ArrowRight size={14} />
                       </button>
                     </div>
                   )}
@@ -833,17 +963,10 @@ export default function App() {
                       <span className="rail-icon">
                         <Radar size={17} />
                       </span>
-                      <h2>On your radar</h2>
-                      <span className="status-dot" />
-                    </div>
-                    <div className="radar-big">
-                      {closing.filter((s) => daysLeft(s, time)! <= 7).length}
-                      <ArrowUpRight size={27} />
+                      <h2>Upcoming deadlines</h2>
                     </div>
                     <p className="radar-label">
-                      opportunities closing
-                      <br />
-                      in the next 7 days
+                      Next 14 days <span>{closing.length} opportunities</span>
                     </p>
                     <div className="deadline-list">
                       {closing.slice(0, 3).map((s) => (
@@ -859,6 +982,9 @@ export default function App() {
                           <ChevronRight size={13} />
                         </button>
                       ))}
+                      {closing.length === 0 && (
+                        <p className="rail-empty">No upcoming deadlines in this market.</p>
+                      )}
                     </div>
                     <button
                       className="rail-link"
@@ -886,10 +1012,10 @@ export default function App() {
                     <div className="rail-heading">
                       <Globe2 size={16} />
                       <h2>Connected sources</h2>
-                      <span className="count-badge">{activeSources.length}</span>
+                      <span className="count-badge">{marketSources.length}</span>
                     </div>
                     <div className="coverage-list">
-                      {activeSources.slice(0, 7).map((s) => (
+                      {marketSources.slice(0, 7).map((s) => (
                         <button
                           key={s.id}
                           onClick={() => {
@@ -925,14 +1051,6 @@ export default function App() {
                       Source coverage & freshness <ArrowRight size={14} />
                     </button>
                   </section>
-                  <div className="rail-footer">
-                    <ShieldCheck size={15} />
-                    <span>
-                      Grounded in source evidence.
-                      <br />
-                      Matched to Anthrion.
-                    </span>
-                  </div>
                 </aside>
               </div>
             )}
@@ -996,8 +1114,13 @@ export default function App() {
             />
           </Modal>
         )}
+        {showMarkets && (
+          <Modal title="Choose your market" onClose={() => setShowMarkets(false)}>
+            <MarketPicker data={data} selected={filters.market} onSelect={switchMarket} />
+          </Modal>
+        )}
         {selectedSignal && data && (
-          <Modal title="Opportunity intelligence" onClose={() => setSelected(null)} wide>
+          <Modal title="Opportunity intelligence" onClose={() => setSelected(null)} wide drawer>
             <SignalDetail
               signal={selectedSignal}
               data={data}
@@ -1043,6 +1166,7 @@ export default function App() {
                 View name
                 <input
                   autoFocus
+                  data-autofocus
                   required
                   maxLength={60}
                   value={viewName}
@@ -1101,12 +1225,80 @@ export default function App() {
   )
 }
 
+function MarketPicker({
+  data,
+  selected,
+  onSelect,
+}: {
+  data: Dataset | null
+  selected: string
+  onSelect: (id: string) => void
+}) {
+  const [query, setQuery] = useState('')
+  const choices = [
+    { id: '', name: 'All markets', short: 'ALL', region: 'Global' },
+    ...markets,
+  ].filter((m) => `${m.name} ${m.region}`.toLowerCase().includes(query.toLowerCase()))
+  return (
+    <div className="market-picker">
+      <label className="search-box market-search">
+        <Search size={18} />
+        <input
+          autoFocus
+          data-autofocus
+          aria-label="Search markets"
+          placeholder="Search markets..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      </label>
+      <div className="market-options" role="group" aria-label="Available markets">
+        {choices.map((m) => {
+          const enabled = data ? marketIsEnabled(m.id, data.markets) : m.id === 'GB' || !m.id
+          const count = data?.signals.filter((s) => matchesMarket(s, m.id)).length || 0
+          return (
+            <button
+              key={m.id}
+              className={`market-option ${selected === m.id ? 'selected' : ''}`}
+              onClick={() => onSelect(m.id)}
+              aria-pressed={selected === m.id}
+            >
+              <span className={`market-symbol market-${m.id.toLowerCase() || 'all'}`}>
+                {m.id === 'NORDICS' || !m.id ? (
+                  <Globe2 size={23} />
+                ) : (
+                  <img
+                    src={`${import.meta.env.BASE_URL}assets/flags/${m.id.toLowerCase()}.png`}
+                    alt=""
+                  />
+                )}
+              </span>
+              <span className="market-option-name">
+                <strong>{m.name}</strong>
+                <small>{m.region}</small>
+              </span>
+              <span className={`market-availability ${enabled ? 'enabled' : ''}`}>
+                <span className={`status-dot ${enabled ? '' : 'inactive'}`} />
+                {enabled ? `${count} signals` : 'Not monitored'}
+              </span>
+              <Check size={18} className="market-check" aria-hidden="true" />
+            </button>
+          )
+        })}
+        {!choices.length && <p className="market-no-results">No markets match your search.</p>}
+      </div>
+    </div>
+  )
+}
+
 function ScoreBadge({ signal, onClick }: { signal: Signal; onClick?: () => void }) {
   const score = signal.fit_score
   const content = (
     <>
-      <strong>{score === null ? '—' : Math.round(score)}</strong>
-      <span>{score === null ? 'PENDING' : 'FIT SCORE'}</span>
+      <strong style={{ '--score': `${score || 0}%` } as React.CSSProperties}>
+        {score === null ? <Clock3 size={24} strokeWidth={1.4} /> : Math.round(score)}
+      </strong>
+      <span>{score === null ? 'Pending' : 'Fit score'}</span>
     </>
   )
   const cls = `score-badge ${score === null ? 'pending' : score >= 82 ? 'strong' : score >= 72 ? 'plausible' : 'peripheral'}`
@@ -1151,7 +1343,7 @@ function SignalCard({
   const sources = [...new Set(s.provenance.map((p) => p.source_name))]
   return (
     <motion.article
-      className={`signal-card ${compared ? 'compared' : ''}`}
+      className={`signal-card ${compared ? 'compared' : ''} ${(s.fit_score || 0) >= 82 ? 'is-priority' : ''}`}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, delay: Math.min(index * 0.035, 0.2) }}
@@ -1167,8 +1359,8 @@ function SignalCard({
             <span className={`recommendation ${s.recommendation.toLowerCase()}`}>
               {recommendationLabels[s.recommendation]}
             </span>
-            {isNew(s, now) && <span className="new-label">NEW</span>}
-            {isUpdated(s, now) && <span className="new-label updated">UPDATED</span>}
+            {isNew(s, now) && <span className="new-label">New</span>}
+            {isUpdated(s, now) && <span className="new-label updated">Updated</span>}
           </div>
           <button className="signal-title" onClick={() => onOpen()}>
             <h3>{s.title}</h3>
@@ -1194,20 +1386,12 @@ function SignalCard({
       </p>
       <div className="signal-facts">
         <span>
-          <span className="currency-icon">
-            {s.currency === 'EUR' ? '€' : s.currency === 'USD' ? '$' : '£'}
-          </span>
+          <FileText size={14} />
           {amount(s.value_max, s.currency)}
         </span>
         <span className={days !== null && days >= 0 && days <= 7 ? 'closing' : ''}>
           <CalendarClock size={13} />
-          {days === null
-            ? s.procurement_stage === 'planning'
-              ? 'Early-stage opportunity'
-              : 'Deadline not published'
-            : days < 0
-              ? `Closed ${date(s.deadline_at, { day: 'numeric', month: 'short' })}`
-              : `${date(s.deadline_at, { day: 'numeric', month: 'short' })}${days <= 14 ? ` · ${days === 0 ? 'Today' : `${days}d left`}` : ''}`}
+          {deadlineCaption(s, now)}
         </span>
         <span className="confidence">
           <span className="confidence-bars">
@@ -1274,7 +1458,7 @@ function ActivityChart({ signals, now }: { signals: Signal[]; now: number }) {
               className="bar"
               style={{ height: `${Math.max(b.value ? 4 : 0, (b.value / max) * 82)}px` }}
             />
-            <small>{b.label.charAt(0)}</small>
+            <small>{b.label}</small>
           </div>
         ))}
       </div>
@@ -1472,9 +1656,13 @@ function SignalDetail({
   onSave: () => void
   onShare: () => void
 }) {
+  const contentRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    contentRef.current?.scrollTo({ top: 0 })
+  }, [tab, s.id])
   return (
     <>
-      <div className="detail-heading">
+      <div className="detail-heading" tabIndex={0} role="region" aria-label="Opportunity heading">
         <div className="detail-eyebrow">
           <span className="type-label">{typeLabels[s.signal_type]}</span>
           <span className={`recommendation ${s.recommendation.toLowerCase()}`}>
@@ -1506,7 +1694,33 @@ function SignalDetail({
       </div>
       <div className="detail-tabs" role="tablist" aria-label="Opportunity detail sections">
         {['overview', 'score', 'requirements', 'sources'].map((t) => (
-          <button role="tab" aria-selected={tab === t} key={t} onClick={() => setTab(t)}>
+          <button
+            role="tab"
+            id={`detail-tab-${t}`}
+            aria-controls="detail-panel"
+            aria-selected={tab === t}
+            tabIndex={tab === t ? 0 : -1}
+            key={t}
+            onClick={() => setTab(t)}
+            onKeyDown={(event) => {
+              const names = ['overview', 'score', 'requirements', 'sources']
+              const current = names.indexOf(t)
+              const index =
+                event.key === 'ArrowRight'
+                  ? (current + 1) % names.length
+                  : event.key === 'ArrowLeft'
+                    ? (current + names.length - 1) % names.length
+                    : event.key === 'Home'
+                      ? 0
+                      : event.key === 'End'
+                        ? names.length - 1
+                        : -1
+              if (index < 0) return
+              event.preventDefault()
+              setTab(names[index])
+              document.getElementById(`detail-tab-${names[index]}`)?.focus()
+            }}
+          >
             {
               {
                 overview: 'Overview',
@@ -1518,7 +1732,14 @@ function SignalDetail({
           </button>
         ))}
       </div>
-      <div className="detail-content" role="tabpanel">
+      <div
+        ref={contentRef}
+        className="detail-content"
+        role="tabpanel"
+        id="detail-panel"
+        aria-labelledby={`detail-tab-${tab}`}
+        tabIndex={0}
+      >
         {tab === 'overview' && (
           <>
             <section className="detail-section">
@@ -1902,81 +2123,91 @@ function SourceCoverage({ data, now }: { data: Dataset; now: number }) {
           })}
         </span>
       </div>
-      <div className="source-table">
-        <div className="source-table-header">
-          <span>PUBLIC SOURCE</span>
-          <span>COLLECTION STATUS</span>
-          <span>LAST SUCCESS</span>
-          <span>RECORDS CHECKED</span>
+      {enabled.length ? (
+        <div className="source-table">
+          <div className="source-table-header">
+            <span>PUBLIC SOURCE</span>
+            <span>COLLECTION STATUS</span>
+            <span>LAST SUCCESS</span>
+            <span>RECORDS CHECKED</span>
+          </div>
+          {enabled.map((s) => {
+            const fresh =
+              s.status === 'healthy' &&
+              s.last_success &&
+              now - Date.parse(s.last_success) < 26 * 3600000
+            const label =
+              s.status === 'healthy' && !fresh
+                ? 'Update overdue'
+                : {
+                    healthy: 'Up to date',
+                    partial: 'Partial collection',
+                    failed: 'Temporarily unavailable',
+                    not_checked: 'Awaiting first collection',
+                    disabled: 'Not monitored',
+                  }[s.status]
+            return (
+              <div className="source-row" key={s.id}>
+                <OutLink href={s.website}>
+                  <Globe2 size={17} />
+                  <span>{s.name}</span>
+                  <ArrowUpRight size={13} />
+                </OutLink>
+                <span>
+                  <i className={`status-dot ${fresh ? '' : 'amber'}`} />
+                  {label}
+                  {s.status === 'partial' && (
+                    <small>Some notices or details are not yet available.</small>
+                  )}
+                  {s.status === 'failed' && (
+                    <small>Previously collected opportunities remain available.</small>
+                  )}
+                </span>
+                <span>
+                  {s.last_success
+                    ? date(s.last_success, {
+                        day: 'numeric',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
+                    : 'Not yet collected'}
+                </span>
+                <strong>{s.records.toLocaleString('en-GB')}</strong>
+              </div>
+            )
+          })}
         </div>
-        {enabled.map((s) => {
-          const fresh =
-            s.status === 'healthy' &&
-            s.last_success &&
-            now - Date.parse(s.last_success) < 26 * 3600000
-          const label =
-            s.status === 'healthy' && !fresh
-              ? 'Update overdue'
-              : {
-                  healthy: 'Up to date',
-                  partial: 'Partial collection',
-                  failed: 'Temporarily unavailable',
-                  not_checked: 'Awaiting first collection',
-                  disabled: 'Not monitored',
-                }[s.status]
-          return (
-            <div className="source-row" key={s.id}>
-              <OutLink href={s.website}>
-                <Globe2 size={17} />
-                <span>{s.name}</span>
-                <ArrowUpRight size={13} />
+      ) : (
+        <div className="empty-state">
+          <Globe2 size={30} />
+          <h3>No sources monitored in this market</h3>
+          <p>Choose United Kingdom to see the current source coverage.</p>
+        </div>
+      )}
+      {enabled.length > 0 && (
+        <div className="source-method">
+          <section>
+            <CalendarClock size={22} />
+            <h3>Refresh schedule</h3>
+            <p>
+              06:15, 10:15, 14:15, 18:15 and 22:15, London time. Publication times depend on source
+              availability.
+            </p>
+          </section>
+          <section>
+            <FileText size={22} />
+            <h3>Public data attribution</h3>
+            <p>
+              Contains public sector information licensed under the{' '}
+              <OutLink href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/">
+                Open Government Licence v3.0
               </OutLink>
-              <span>
-                <i className={`status-dot ${fresh ? '' : 'amber'}`} />
-                {label}
-                {s.status === 'partial' && (
-                  <small>Some notices or details are not yet available.</small>
-                )}
-                {s.status === 'failed' && (
-                  <small>Previously collected opportunities remain available.</small>
-                )}
-              </span>
-              <span>
-                {s.last_success
-                  ? date(s.last_success, {
-                      day: 'numeric',
-                      month: 'short',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })
-                  : 'Not yet collected'}
-              </span>
-              <strong>{s.records.toLocaleString('en-GB')}</strong>
-            </div>
-          )
-        })}
-      </div>
-      <div className="source-method">
-        <section>
-          <CalendarClock size={22} />
-          <h3>Refresh schedule</h3>
-          <p>
-            06:15, 10:15, 14:15, 18:15 and 22:15, London time. Publication times depend on source
-            availability.
-          </p>
-        </section>
-        <section>
-          <FileText size={22} />
-          <h3>Public data attribution</h3>
-          <p>
-            Contains public sector information licensed under the{' '}
-            <OutLink href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/">
-              Open Government Licence v3.0
-            </OutLink>
-            .
-          </p>
-        </section>
-      </div>
+              .
+            </p>
+          </section>
+        </div>
+      )}
     </section>
   )
 }

@@ -20,6 +20,33 @@ export const defaults: Filters = {
   deadline: '',
   change: '',
 }
+export const markets = [
+  { id: 'GB', name: 'United Kingdom', short: 'UK', countries: ['GB'], region: 'Europe' },
+  { id: 'US', name: 'United States', short: 'US', countries: ['US'], region: 'North America' },
+  { id: 'IT', name: 'Italy', short: 'IT', countries: ['IT'], region: 'Europe' },
+  {
+    id: 'NORDICS',
+    name: 'Nordics',
+    short: 'NO',
+    countries: ['SE', 'FI', 'DK', 'NO', 'IS'],
+    region: 'Northern Europe',
+  },
+  { id: 'DE', name: 'Germany', short: 'DE', countries: ['DE'], region: 'Europe' },
+  { id: 'ES', name: 'Spain', short: 'ES', countries: ['ES'], region: 'Europe' },
+  { id: 'GR', name: 'Greece', short: 'GR', countries: ['GR'], region: 'Europe' },
+] as const
+
+export function matchesMarket(signal: Signal, market: string) {
+  if (!market) return true
+  const countries: readonly string[] = markets.find((m) => m.id === market)?.countries || [market]
+  return signal.countries.some((country) => countries.includes(country))
+}
+
+export function marketIsEnabled(market: string, configured: Record<string, { enabled: boolean }>) {
+  if (!market) return Object.values(configured).some((m) => m.enabled)
+  const countries: readonly string[] = markets.find((m) => m.id === market)?.countries || [market]
+  return countries.some((country) => configured[country]?.enabled)
+}
 export const typeLabels: Record<string, string> = {
   LIVE_TENDER: 'Live tender',
   EARLY_MARKET_ENGAGEMENT: 'Early engagement',
@@ -65,6 +92,16 @@ export const amount = (value: number | null, currency: string | null, compact = 
 }
 export const daysLeft = (s: Signal, now = Date.now()) =>
   s.deadline_at ? Math.ceil((Date.parse(s.deadline_at) - now) / 86400000) : null
+export function deadlineCaption(s: Signal, now = Date.now()) {
+  if (!s.deadline_at)
+    return s.procurement_stage === 'planning' ? 'Early-stage opportunity' : 'Deadline not published'
+  const remaining = Date.parse(s.deadline_at) - now
+  const label = date(s.deadline_at, { day: 'numeric', month: 'short' })
+  if (remaining <= 0) return `Closed ${label}`
+  if (remaining < 3600000) return `${label} · ${Math.ceil(remaining / 60000)}m left`
+  if (remaining < 86400000) return `${label} · ${Math.ceil(remaining / 3600000)}h left`
+  return `${label}${remaining <= 14 * 86400000 ? ` · ${Math.ceil(remaining / 86400000)}d left` : ''}`
+}
 export const isLive = (s: Signal, now = Date.now()) =>
   s.procurement_stage === 'tender' &&
   !['cancelled', 'withdrawn', 'complete', 'awarded', 'unsuccessful', 'closed'].includes(s.status) &&
@@ -86,7 +123,7 @@ export function filterSignals(
   now = Date.now(),
 ) {
   const result = signals.filter((s) => {
-    if (f.market && !s.countries.includes(f.market)) return false
+    if (!matchesMarket(s, f.market)) return false
     switch (f.view) {
       case 'top':
         if (
