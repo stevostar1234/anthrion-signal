@@ -1,83 +1,82 @@
 {
   "contracts_finder": {
-    "last_success": "2026-09-09T19:46:13+00:00",
-    "watermark": "2026-09-09T19:46:13+00:00"
+    "last_success": "2026-09-09T23:15:42+00:00",
+    "watermark": "2026-09-09T23:15:42+00:00"
   },
   "digital_outcomes": {},
   "find_tender": {
-    "last_success": "2026-09-09T19:46:13+00:00",
-    "watermark": "2026-09-09T19:46:13+00:00"
+    "last_success": "2026-09-09T23:15:42+00:00",
+    "watermark": "2026-09-09T23:15:42+00:00"
   },
   "govuk": {
     "queries": {
       "AI agents": {
-        "from": "2026-09-08T10:57:03+00:00",
+        "from": "2026-09-08T23:15:42+00:00",
         "offset": 0
       },
       "CRM transformation": {
-        "from": "2026-09-08T19:46:13+00:00",
+        "from": "2026-09-08T23:15:42+00:00",
         "offset": 0
       },
       "Salesforce": {
-        "from": "2026-09-08T19:46:13+00:00",
+        "from": "2026-09-08T23:15:42+00:00",
         "offset": 0
       },
       "artificial intelligence procurement": {
-        "from": "2026-09-08T19:46:13+00:00",
+        "from": "2026-09-08T23:15:42+00:00",
         "offset": 0
       },
       "automation integration": {
-        "from": "2026-09-08T19:46:13+00:00",
+        "from": "2026-09-08T23:15:42+00:00",
         "offset": 0
       },
       "case management": {
         "from": "2026-06-10T10:57:03+00:00",
-        "offset": 3000,
+        "offset": 3600,
         "to": "2026-09-09T10:57:03+00:00"
       },
       "citizen services": {
         "from": "2026-06-10T10:57:03+00:00",
-        "offset": 3000,
+        "offset": 3600,
         "to": "2026-09-09T10:57:03+00:00"
       },
       "commercial pipeline digital": {
         "from": "2026-06-10T10:57:03+00:00",
-        "offset": 3000,
+        "offset": 3600,
         "to": "2026-09-09T10:57:03+00:00"
       },
       "contact centre": {
         "from": "2026-06-10T10:57:03+00:00",
-        "offset": 3000,
+        "offset": 3600,
         "to": "2026-09-09T10:57:03+00:00"
       },
       "data platform": {
         "from": "2026-06-10T10:57:03+00:00",
-        "offset": 3000,
+        "offset": 3600,
         "to": "2026-09-09T10:57:03+00:00"
       },
       "digital transformation procurement": {
-        "from": "2026-06-10T10:57:03+00:00",
-        "offset": 3000,
-        "to": "2026-09-09T10:57:03+00:00"
+        "from": "2026-09-08T10:57:03+00:00",
+        "offset": 0
       },
       "generative AI": {
-        "from": "2026-09-08T10:57:03+00:00",
+        "from": "2026-09-08T23:15:42+00:00",
         "offset": 0
       },
       "procurement pipeline technology": {
-        "from": "2026-09-08T10:57:03+00:00",
+        "from": "2026-09-08T23:15:42+00:00",
         "offset": 0
       }
     },
-    "watermark": "2026-09-09T19:46:13+00:00"
+    "watermark": "2026-09-09T23:15:42+00:00"
   },
   "scotland": {
     "last_success": "2026-09-09T11:17:33+00:00",
     "watermark": "2026-09-09T11:17:33+00:00"
   },
   "upcoming_agreements": {
-    "last_success": "2026-09-09T19:46:13+00:00",
-    "watermark": "2026-09-09T19:46:13+00:00"
+    "last_success": "2026-09-09T23:15:42+00:00",
+    "watermark": "2026-09-09T23:15:42+00:00"
   },
   "wales": {}
 }
