@@ -2,15 +2,22 @@ import { test, expect } from '@playwright/test'
 
 test('real feed, search, save, evidence and responsive layout', async ({ page }, testInfo) => {
   const errors: string[] = []
-  page.on('pageerror', e => errors.push(e.message))
+  page.on('pageerror', (e) => errors.push(e.message))
   await page.goto('./')
-  await expect(page.getByRole('heading', { name: 'Opportunity intelligence.', exact: true })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Opportunity intelligence.', exact: true }),
+  ).toBeVisible()
   await expect(page.locator('.signal-card').first()).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
   await expect(page.locator('.signal-card').first()).toHaveCSS('opacity', '1')
   await expect(page.locator('.brand img')).toHaveJSProperty('complete', true)
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
-  await page.screenshot({ path: `../artifacts/dashboard-${testInfo.project.name}.png`, fullPage: false })
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+    page.viewportSize()!.width,
+  )
+  await page.screenshot({
+    path: `../artifacts/dashboard-${testInfo.project.name}.png`,
+    fullPage: false,
+  })
   await page.getByRole('button', { name: 'Save opportunity in this browser' }).first().click()
   await expect(page.getByRole('button', { name: 'Unsave opportunity' }).first()).toBeVisible()
   await page.getByRole('button', { name: 'Filters', exact: true }).click()
@@ -22,13 +29,19 @@ test('real feed, search, save, evidence and responsive layout', async ({ page },
   await page.getByRole('button', { name: /Clear 1 filters/ }).click()
   await page.locator('.signal-title').first().click()
   await expect(page.getByRole('dialog')).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Open source notice' })).toHaveAttribute('href', /^https:/)
+  await expect(page.getByRole('link', { name: 'Open source notice' })).toHaveAttribute(
+    'href',
+    /^https:/,
+  )
   for (const name of ['Score & evidence', 'Requirements', 'Sources & timeline', 'Overview']) {
     await page.getByRole('tab', { name, exact: true }).click()
     await expect(page.getByRole('tabpanel')).toBeVisible()
   }
   await page.getByRole('tab', { name: 'Score & evidence' }).click()
-  await page.screenshot({ path: `../artifacts/evidence-${testInfo.project.name}.png`, fullPage: false })
+  await page.screenshot({
+    path: `../artifacts/evidence-${testInfo.project.name}.png`,
+    fullPage: false,
+  })
   await page.getByRole('button', { name: 'Close panel' }).click()
   await page.getByRole('textbox', { name: 'Search opportunities' }).fill('no-such-opportunity-xyz')
   await expect(page.getByText('No matching signals', { exact: true })).toBeVisible()
@@ -40,12 +53,32 @@ test('real feed, search, save, evidence and responsive layout', async ({ page },
 test('all navigation views and source coverage are usable', async ({ page }, testInfo) => {
   await page.goto('./')
   await expect(page.locator('.signal-card').first()).toBeVisible()
-  const items = ['All signals', 'Live opportunities', 'Early engagement', 'Future & pipeline', 'Renewals', 'Frameworks', 'Funding & partnerships', 'Awards', 'Saved opportunities', 'Latest updates', 'Source coverage']
+  const items = [
+    'All signals',
+    'Live opportunities',
+    'Early engagement',
+    'Future & pipeline',
+    'Renewals',
+    'Frameworks',
+    'Funding & partnerships',
+    'Awards',
+    'Saved opportunities',
+    'Latest updates',
+    'Source coverage',
+  ]
   for (const label of items) {
-    if (testInfo.project.name === 'mobile') await page.getByRole('button', { name: 'Open navigation' }).click()
-    await page.locator('.sidebar').getByRole('button', { name: new RegExp(`^${label}`) }).click()
-    await expect(page.locator('.feed-heading h2')).toHaveText(label === 'Source coverage' ? 'Source coverage' : label)
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    if (testInfo.project.name === 'mobile')
+      await page.getByRole('button', { name: 'Open navigation' }).click()
+    await page
+      .locator('.sidebar')
+      .getByRole('button', { name: new RegExp(`^${label}`) })
+      .click()
+    await expect(page.locator('.feed-heading h2')).toHaveText(
+      label === 'Source coverage' ? 'Source coverage' : label,
+    )
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      page.viewportSize()!.width,
+    )
   }
 })
 
@@ -60,4 +93,44 @@ test('CSV export and comparison', async ({ page }) => {
   await page.locator('.compare-tray').getByRole('button', { name: 'Compare', exact: true }).click()
   await expect(page.getByRole('dialog', { name: 'Compare opportunities' })).toBeVisible()
   await expect(page.locator('.comparison-grid section')).toHaveCount(2)
+})
+
+test('failed refresh retains usable opportunities', async ({ page }) => {
+  await page.goto('./')
+  await expect(page.locator('.signal-card').first()).toBeVisible()
+  const title = await page.locator('.signal-title').first().textContent()
+  await page.route('**/data/current.json', (route) =>
+    route.fulfill({ status: 503, body: 'Unavailable' }),
+  )
+  await page.getByRole('button', { name: 'Check for updates' }).click()
+  await expect(
+    page.getByText('The latest opportunity feed is temporarily unavailable.'),
+  ).toBeVisible()
+  await expect(page.locator('.signal-title').first()).toHaveText(title!)
+})
+
+test('malformed browser storage cannot crash the workspace', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('anthrion-saved-v1', '{"bad":"shape"}')
+    localStorage.setItem('anthrion-views-v1', '[null]')
+  })
+  await page.goto('./')
+  await expect(page.locator('.signal-card').first()).toBeVisible()
+})
+
+test('compact and wide layouts keep controls within the viewport', async ({ page }, testInfo) => {
+  for (const width of testInfo.project.name === 'mobile' ? [320, 430] : [1024, 1920]) {
+    await page.setViewportSize({ width, height: 900 })
+    await page.goto('./')
+    await expect(page.locator('.signal-card').first()).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      width,
+    )
+    await page.getByRole('button', { name: 'Filters', exact: true }).click()
+    await expect(page.getByRole('dialog')).toBeVisible()
+    expect(await page.locator('dialog').evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
+      true,
+    )
+    await page.getByRole('button', { name: 'Close panel' }).click()
+  }
 })
