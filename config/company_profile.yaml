@@ -1,0 +1,205 @@
+version: "2026-09-09.1"
+company_name: Anthrion
+source_document: EuroForce Business Profile.pdf
+source_note: Public capability facts transcribed from the supplied business profile. Legacy identity retained as an alias.
+aliases:
+  - EuroForce
+  - EuroForce GmbH
+  - EuroForce UKI Ltd.
+  - EuroForce Nord AB
+  - EuroForce Finland Oy
+  - EuroForce Iberia S.L.
+  - EuroForce Italia S.r.l.
+  - EuroForce Italia Innovativ S.r.l.
+  - EuroForce Hellas IKE
+capabilities:
+  - id: salesforce
+    label: Salesforce
+    family: CRM & platforms
+    terms: [salesforce, sales cloud, service cloud, marketing cloud, education cloud, salesforce platform]
+    evidence:
+      page: 5
+      section: "6.2 Salesforce expertise"
+      quote: "EuroForce provides Salesforce consulting, architecture, implementation, customisation, integration, optimisation, and operational support."
+  - id: crm
+    label: CRM & customer experience
+    family: CRM & platforms
+    terms: [crm, customer relationship management, customer experience, stakeholder management, member management, sales transformation]
+    evidence:
+      page: 19
+      section: "15. Target customer profile"
+      quote: "Need to replace or modernise a CRM environment."
+  - id: service
+    label: Service & case management
+    family: Service transformation
+    terms: [case management, customer service, contact centre, contact center, citizen engagement, service request, service transformation, student support, grant management]
+    evidence:
+      page: 9
+      section: "9.2 Service Cloud"
+      quote: "Service operations and case-management transformation are important areas of EuroForce experience."
+  - id: ai
+    label: AI & intelligent agents
+    family: AI & automation
+    terms: [agentforce, einstein, artificial intelligence, generative ai, ai agent, agentic, llm, intelligent automation, document intelligence, knowledge retrieval, natural language]
+    evidence:
+      page: 12
+      section: "10.2 Salesforce-native AI"
+      quote: "EuroForce designs AI capabilities that can operate within Salesforce-centred environments."
+  - id: integration
+    label: Integration & MuleSoft
+    family: Data & integration
+    terms: [mulesoft, systems integration, system integration, api integration, api-led, application integration, legacy integration, integration platform]
+    evidence:
+      page: 11
+      section: "9.8 MuleSoft"
+      quote: "MuleSoft is an important component of EuroForce's integration capability."
+  - id: data
+    label: Data & analytics
+    family: Data & integration
+    terms: [data cloud, tableau, analytics, business intelligence, data migration, data integration, data unification, data platform, data harmonisation, customer 360, data warehouse, data visualisation]
+    evidence:
+      page: 10
+      section: "9.4 Data Cloud / 9.7 Tableau"
+      quote: "Data activation. Segmentation. Real-time customer data. AI grounding. Personalisation. Analytics. Integration of Salesforce and external data."
+  - id: workflow
+    label: Workflow & digital services
+    family: AI & automation
+    terms: [workflow, process automation, business process, low-code, low code, self-service, self service, portal, digital service, process orchestration, knowledge management, decision support]
+    evidence:
+      page: 11
+      section: "9.9 Salesforce Platform"
+      quote: "Custom business applications. Workflow automation. Data models. User interfaces. Process orchestration. Approvals. Business rules. Portals."
+  - id: transformation
+    label: Transformation & architecture
+    family: Advisory & delivery
+    terms: [digital transformation, digital modernisation, solution architecture, enterprise architecture, service design, technology roadmap, business transformation, customer transformation]
+    evidence:
+      page: 7
+      section: "8.3 Salesforce architecture"
+      quote: "EuroForce provides architecture for complex Salesforce and enterprise-platform environments."
+  - id: governance
+    label: Governance & sovereignty
+    family: Advisory & delivery
+    terms: [data governance, data sovereignty, ai governance, gdpr, data protection, data residency, responsible ai]
+    evidence:
+      page: 14
+      section: "12. Data, privacy, security, and sovereignty"
+      quote: "EuroForce has a European delivery orientation and places importance on the secure and compliant use of customer data."
+  - id: managed
+    label: Managed services
+    family: Advisory & delivery
+    terms: [managed services, application support, salesforce support, application maintenance, continuous improvement, platform support]
+    evidence:
+      page: 8
+      section: "8.5 Managed and ongoing services"
+      quote: "EuroForce can support customers after an initial implementation through ongoing enhancement, support, optimisation, administration, governance, and development services."
+technologies:
+  - {name: Sales Cloud, page: 8, section: "9.1"}
+  - {name: Service Cloud, page: 9, section: "9.2"}
+  - {name: Marketing Cloud, page: 9, section: "9.3"}
+  - {name: Data Cloud, page: 9, section: "9.4"}
+  - {name: Education Cloud, page: 10, section: "9.6"}
+  - {name: Tableau, page: 10, section: "9.7"}
+  - {name: MuleSoft, page: 11, section: "9.8"}
+  - {name: Salesforce Platform, page: 11, section: "9.9"}
+  - {name: Agentforce, page: 12, section: "10.2"}
+  - {name: Einstein, page: 12, section: "10.2"}
+delivery_models:
+  - id: advisory
+    label: Strategy & architecture
+    terms: [advisory, architecture, discovery, strategy, assessment, roadmap]
+    evidence: {page: 6, section: "8.1", quote: "EuroForce helps organisations define how Salesforce should support their business strategy and operating model."}
+  - id: implementation
+    label: Project implementation
+    terms: [implementation, implement, development, integration, migration, transformation, delivery]
+    evidence: {page: 6, section: "8.2", quote: "EuroForce designs, configures, develops, tests, deploys, and improves Salesforce solutions."}
+  - id: managed_services
+    label: Managed services
+    terms: [managed services, ongoing support, maintenance, continuous improvement]
+    evidence: {page: 8, section: "8.5", quote: "EuroForce can support customers after an initial implementation through ongoing enhancement, support, optimisation, administration, governance, and development services."}
+  - id: pilot
+    label: Focused pilot to scale
+    terms: [pilot, proof of concept, proof of solution, initial production]
+    evidence: {page: 13, section: "10.4", quote: "Design and build a focused pilot or initial production use case."}
+sectors:
+  - id: public_services
+    label: Public services
+    terms: [council, government, public sector, ministry, department, authority, citizen, borough]
+    evidence: {page: 17, section: "14.2", quote: "EuroForce supports public-sector and public-service organisations"}
+  - id: education
+    label: Education
+    terms: [university, education, college, student, school]
+    evidence: {page: 17, section: "14.3", quote: "EuroForce supports education organisations across the student lifecycle."}
+  - id: manufacturing
+    label: Manufacturing
+    terms: [manufacturing, manufacturer, industrial]
+    evidence: {page: 17, section: "14.1", quote: "EuroForce supports manufacturers"}
+  - id: hospitality
+    label: Hospitality & tourism
+    terms: [hospitality, hotel, tourism, guest, wellness]
+    evidence: {page: 18, section: "14.4 / 14.5", quote: "EuroForce supports hospitality organisations"}
+  - id: complex_service
+    label: Complex service operations
+    terms: [customer support, case management, service operations]
+    evidence: {page: 18, section: "14.6", quote: "High case volumes. Complex customer histories. Multiple data sources."}
+geographies:
+  countries: [GB, DE, SE, FI, ES, IT, GR]
+  evidence: {page: 3, section: "3.6 European presence", quote: "Germany. United Kingdom. Sweden. Finland. Spain. Italy. Greece."}
+governance:
+  strengths: [GDPR-aligned design, data residency, data sovereignty, role-based access, human oversight, auditability]
+  evidence: {page: 14, section: "12", quote: "GDPR-aligned solution design. European data-protection requirements. Data residency."}
+references:
+  - id: finnish_service
+    name: Leading Finnish technology company (unnamed)
+    capabilities: [service, ai, salesforce]
+    sectors: [complex_service]
+    evidence: {page: 19, section: "16.1", quote: "More than 20,000 working hours saved per year. An average reduction of 21 clicks per case."}
+    outcomes: ["More than 20,000 working hours saved per year", "Average reduction of 21 clicks per case"]
+    limits: Client is not named in this case. Do not attribute its outcomes to Qt Group.
+  - id: troester
+    name: TROESTER
+    capabilities: [salesforce, crm, service, integration]
+    sectors: [manufacturing]
+    evidence: {page: 20, section: "16.2", quote: "Salesforce transformation work with TROESTER involving sales and service processes and integration with SAP and Microsoft environments using MuleSoft."}
+    outcomes: []
+  - id: qt
+    name: Qt Group
+    capabilities: [ai, salesforce]
+    sectors: []
+    evidence: {page: 20, section: "16.3", quote: "EuroForce has publicly referenced AI agents deployed with Qt Group."}
+    outcomes: []
+  - id: spanish_ministry
+    name: Spanish Ministry of Inclusion, Social Security and Migration
+    capabilities: [ai, salesforce, governance]
+    sectors: [public_services]
+    evidence: {page: 20, section: "16.4", quote: "Agentforce-based labour-matching solution for the Spanish Ministry of Inclusion, Social Security and Migration."}
+    outcomes: []
+  - id: aegialis
+    name: Aegialis Hotel & Spa
+    capabilities: [ai, integration, crm]
+    sectors: [hospitality]
+    evidence: {page: 20, section: "16.5", quote: "EuroForce has publicly referenced hospitality-agent work with Aegialis Hotel & Spa."}
+    outcomes: []
+confirmed_relationships:
+  - {name: Official Salesforce partner, page: 5, section: "7"}
+  - {name: Authorised Salesforce reseller in several European countries, page: 5, section: "7"}
+unknowns:
+  framework_memberships: null
+  security_certifications: null
+  insurance_limits: null
+  financial_capacity: null
+  turnover: null
+  headcount: null
+  uk_public_sector_reference_eligibility: null
+  us_delivery_presence: null
+  reseller_countries: null
+commercial_preferences:
+  currency: GBP
+  minimum_viable_value: null
+  maximum_comfortable_value: null
+  preferred_value_min: null
+  preferred_value_max: null
+  preferred_duration_months: null
+eligibility:
+  framework_memberships: null
+  certifications: null

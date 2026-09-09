@@ -1,0 +1,16 @@
+cpv_prefixes: ['48', '72', '7931', '7941', '722', '723', '724', '725', '726', '7512', '7513']
+high_intent: [salesforce, mulesoft, agentforce, tableau, customer relationship management, crm, case management, generative ai, ai agent, data cloud, service cloud]
+supplementary: [commercial pipeline, procurement pipeline, upcoming procurement, digital transformation, service transformation, contact centre, citizen services, data platform, artificial intelligence, automation, systems integration, rfi, request for information, market engagement]
+exclusions: [road resurfacing, building construction, catering services, grounds maintenance, office furniture, medical consumables, refuse collection, asbestos removal, boiler replacement, security guarding]
+govuk_queries: [commercial pipeline digital, procurement pipeline technology, Salesforce, CRM transformation, case management, contact centre, citizen services, digital transformation procurement, data platform, artificial intelligence procurement, generative AI, AI agents, automation integration]
+markets:
+  GB: {name: United Kingdom, enabled: true, ted_codes: [GBR]}
+  US: {name: United States, enabled: false, ted_codes: []}
+  IT: {name: Italy, enabled: false, ted_codes: [ITA]}
+  SE: {name: Sweden, enabled: false, ted_codes: [SWE]}
+  FI: {name: Finland, enabled: false, ted_codes: [FIN]}
+  DK: {name: Denmark, enabled: false, ted_codes: [DNK]}
+  'NO': {name: Norway, enabled: false, ted_codes: [NOR]}
+  DE: {name: Germany, enabled: false, ted_codes: [DEU]}
+  ES: {name: Spain, enabled: false, ted_codes: [ESP]}
+  GR: {name: Greece, enabled: false, ted_codes: [GRC]}

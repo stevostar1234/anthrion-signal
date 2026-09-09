@@ -1,0 +1,126 @@
+version: "1.0"
+sources:
+  - id: find_tender
+    name: Find a Tender
+    enabled: true
+    collector: ocds_cursor
+    source_type: official_notice
+    url: https://www.find-tender.service.gov.uk/api/1.0/ocdsReleasePackages
+    website: https://www.find-tender.service.gov.uk
+    docs: https://www.find-tender.service.gov.uk/apidocumentation/1.0/GET-ocdsReleasePackages
+    record_url: https://www.find-tender.service.gov.uk/api/1.0/ocdsRecordPackages/{ocid}
+    hydrate_records: true
+    record_limit: 4
+    from_param: updatedFrom
+    to_param: updatedTo
+    date_format: '%Y-%m-%dT%H:%M:%S'
+    stages: [planning, tender, award]
+    limit: 100
+    overlap_minutes: 30
+    window_hours: 6
+    country: GB
+  - id: contracts_finder
+    name: Contracts Finder
+    enabled: true
+    collector: ocds_cursor
+    source_type: official_notice
+    url: https://www.contractsfinder.service.gov.uk/Published/Notices/OCDS/Search
+    website: https://www.contractsfinder.service.gov.uk
+    docs: https://www.contractsfinder.service.gov.uk/apidocumentation
+    record_url: https://www.contractsfinder.service.gov.uk/Published/OCDS/Record/{ocid}
+    hydrate_records: true
+    record_limit: 4
+    from_param: publishedFrom
+    to_param: publishedTo
+    stages: [planning, tender, award, implementation]
+    limit: 100
+    overlap_minutes: 60
+    window_hours: 24
+    country: GB
+  - id: scotland
+    name: Public Contracts Scotland
+    enabled: true
+    collector: ocds_monthly
+    source_type: official_notice
+    url: https://api.publiccontractsscotland.gov.uk/v1/Notices
+    website: https://www.publiccontractsscotland.gov.uk
+    docs: https://api.publiccontractsscotland.gov.uk/v1
+    record_url: https://api.publiccontractsscotland.gov.uk/v1/Notice?id={ocid}
+    notice_types: [1, 2, 3, 4, 5, 6, 7, 14, 20, 101, 102, 103, 104]
+    recent_months: 2
+    country: GB
+    region: Scotland
+  - id: wales
+    name: Sell2Wales
+    enabled: true
+    collector: ocds_monthly
+    source_type: official_notice
+    url: https://api.sell2wales.gov.wales/v1/Notices
+    website: https://www.sell2wales.gov.wales
+    docs: https://www.sell2wales.gov.wales/helpandresources/ocds/publicationpolicy
+    record_url: https://api.sell2wales.gov.wales/v1/Notice?id={ocid}&locale=2057
+    notice_types: [1, 2, 3, 4, 5, 6, 7, 14, 20, 51, 52, 53]
+    recent_months: 2
+    locale: 2057
+    country: GB
+    region: Wales
+  - id: govuk
+    name: GOV.UK
+    enabled: true
+    collector: govuk
+    source_type: official_publication
+    url: https://www.gov.uk/api/search.json
+    website: https://www.gov.uk
+    docs: https://www.gov.uk/search/research-and-statistics
+    country: GB
+    limit: 100
+  - id: digital_outcomes
+    name: Digital Outcomes
+    enabled: true
+    collector: digital_outcomes
+    source_type: official_notice
+    url: https://redirect.contractawardservice.gca.gov.uk/digital-outcomes/opportunities
+    website: https://redirect.contractawardservice.gca.gov.uk
+    docs: https://redirect.contractawardservice.gca.gov.uk/digital-outcomes/opportunities
+    country: GB
+    request_delay_seconds: 1
+  - id: upcoming_agreements
+    name: GCA Upcoming Agreements
+    enabled: true
+    collector: upcoming_agreements
+    source_type: official_publication
+    url: https://www.gca.gov.uk/agreements/upcoming
+    website: https://www.gca.gov.uk
+    docs: https://www.gca.gov.uk/agreements/upcoming
+    country: GB
+    request_delay_seconds: 1
+  - id: ted
+    name: TED Europe
+    enabled: false
+    collector: ted
+    source_type: official_notice
+    url: https://api.ted.europa.eu/v3/notices/search
+    website: https://ted.europa.eu
+    docs: https://docs.ted.europa.eu/ODS/latest/reuse/search-api.html
+    limit: 100
+    country: EU
+  - {id: etenders_ni, name: eTendersNI, enabled: false, collector: external_adapter, website: 'https://etendersni.gov.uk', access: official API or supplier alerts}
+  - {id: nhs_atamis, name: NHS Atamis, enabled: false, collector: external_adapter, website: 'https://health-family.force.com/s/Welcome', access: supplier alerts}
+  - {id: nhs_supply_chain, name: NHS Supply Chain / Jaggaer, enabled: false, collector: external_adapter, website: 'https://www.supplychain.nhs.uk', access: official feed or supplier alerts}
+  - {id: mod_dsp, name: MOD Defence Sourcing Portal, enabled: false, collector: external_adapter, website: 'https://contracts.mod.uk', access: supplier alerts}
+  - {id: mod_pipeline, name: MOD Acquisition Pipeline, enabled: false, collector: external_adapter, website: 'https://www.gov.uk/government/organisations/ministry-of-defence', access: documented public export}
+  - {id: chest, name: The Chest, enabled: false, collector: external_adapter, website: 'https://www.the-chest.org.uk', access: supplier alerts}
+  - {id: yortender, name: YORtender, enabled: false, collector: external_adapter, website: 'https://yortender.eu-supply.com', access: supplier alerts}
+  - {id: procontract, name: ProContract / Proactis, enabled: false, collector: external_adapter, website: 'https://procontract.due-north.com', access: authorised API or supplier alerts}
+  - {id: intend, name: In-tend, enabled: false, collector: external_adapter, website: 'https://www.in-tend.co.uk', access: supplier alerts}
+  - {id: jaggaer, name: Jaggaer buyer portals, enabled: false, collector: external_adapter, website: 'https://www.jaggaer.com', access: supplier alerts}
+  - {id: innovate_uk, name: Innovate UK, enabled: false, collector: external_adapter, website: 'https://apply-for-innovation-funding.service.gov.uk', access: official competition feed}
+  - {id: sbri, name: SBRI, enabled: false, collector: external_adapter, website: 'https://www.ukri.org', access: official competition feed}
+  - {id: eu_funding, name: EU Funding & Tenders, enabled: false, collector: external_adapter, website: 'https://ec.europa.eu/info/funding-tenders/opportunities/portal', access: documented public API}
+  - {id: nato, name: NATO Procurement, enabled: false, collector: external_adapter, website: 'https://www.nato.int', access: official public procurement feed}
+  - {id: ncia, name: NCIA, enabled: false, collector: external_adapter, website: 'https://www.ncia.nato.int', access: official opportunities export}
+  - {id: nspa, name: NSPA, enabled: false, collector: external_adapter, website: 'https://www.nspa.nato.int', access: authorised feed}
+  - {id: world_bank, name: World Bank, enabled: false, collector: external_adapter, website: 'https://projects.worldbank.org', access: official procurement API}
+  - {id: ebrd, name: EBRD, enabled: false, collector: external_adapter, website: 'https://www.ebrd.com', access: official procurement notices}
+  - {id: sam, name: SAM.gov, enabled: false, collector: external_adapter, website: 'https://sam.gov', access: API key and official opportunities API}
+  - {id: ungm, name: UNGM, enabled: false, collector: external_adapter, website: 'https://www.ungm.org', access: authorised public API or supplier alerts}

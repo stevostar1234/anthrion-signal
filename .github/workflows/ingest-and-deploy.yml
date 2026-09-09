@@ -1,0 +1,145 @@
+name: Collect intelligence and deploy
+
+on:
+  schedule:
+    - cron: '15 6,10,14,18,22 * * *'
+      timezone: Europe/London
+  workflow_dispatch:
+    inputs:
+      collect:
+        description: Collect new notices before deployment
+        type: boolean
+        default: true
+  push:
+    branches: [main]
+    paths-ignore: ['data/**', '**.md']
+
+concurrency:
+  group: anthrion-signal-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    outputs:
+      deploy: ${{ steps.changed.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: pip install -e '.[test]'
+      - run: npm ci
+        working-directory: app
+      - uses: actions/cache@v4
+        with:
+          path: data/ai_cache
+          key: gemini-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: gemini-${{ runner.os }}-
+      - name: Save previous publication signature
+        run: python scripts/publication_state.py before
+      - name: Collect and analyse public intelligence
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.collect)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          MAX_AI_CALLS_PER_RUN: ${{ vars.MAX_AI_CALLS_PER_RUN || '30' }}
+          AI_CONCURRENCY: ${{ vars.AI_CONCURRENCY || '2' }}
+          AI_MIN_PREFILTER_SCORE: ${{ vars.AI_MIN_PREFILTER_SCORE || '25' }}
+          MAX_PAGES_PER_SOURCE: '80'
+          PYTHONUNBUFFERED: '1'
+        run: python -m anthrion_signal.cli ingest
+      - name: Validate pipeline and public dataset
+        run: |
+          python -m pytest -q
+          python -m ruff check pipeline
+          python -m anthrion_signal.cli validate
+          python -m anthrion_signal.cli export
+          python scripts/check_public_output.py
+      - name: Test and build dashboard
+        working-directory: app
+        env:
+          VITE_BASE_PATH: /${{ github.event.repository.name }}/
+        run: |
+          npm test
+          npm run build
+      - name: Browser smoke tests
+        working-directory: app
+        run: |
+          npx playwright install --with-deps chromium
+          npx playwright test
+      - name: Detect meaningful publication changes
+        id: changed
+        env:
+          FORCE_DEPLOY: ${{ github.event_name != 'schedule' }}
+        run: python scripts/publication_state.py after
+      - name: Persist canonical state
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data
+          if ! git diff --cached --quiet; then
+            git commit -m 'Update public opportunity intelligence [skip ci]'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+      - name: Upload Pages build
+        if: steps.changed.outputs.deploy == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: app/dist
+      - name: Record run summary
+        if: always()
+        run: python scripts/run_summary.py
+
+  deploy:
+    needs: build
+    if: needs.build.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  record-publication:
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Record successful publication
+        run: |
+          python scripts/publication_state.py deployed
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/publication_state.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Record successful intelligence publication [skip ci]'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi

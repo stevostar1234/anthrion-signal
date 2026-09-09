@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "anthrion-signal"
+version = "1.0.0"
+description = "Evidence-grounded procurement intelligence for Anthrion"
+requires-python = ">=3.12"
+dependencies = [
+  "httpx==0.28.1",
+  "pydantic==2.12.5",
+  "PyYAML==6.0.3",
+  "beautifulsoup4==4.14.3",
+  "rapidfuzz==3.14.3",
+  "rank-bm25==0.2.2",
+  "google-genai==1.75.0",
+  "python-dotenv==1.2.2",
+]
+
+[project.optional-dependencies]
+test = ["pytest==9.0.2", "pytest-httpx==0.36.0", "ruff==0.14.14"]
+
+[project.scripts]
+anthrion-signal = "anthrion_signal.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["pipeline"]
+
+[tool.pytest.ini_options]
+pythonpath = ["pipeline"]
+testpaths = ["pipeline/tests"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"

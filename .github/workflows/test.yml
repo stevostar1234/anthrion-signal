@@ -1,0 +1,30 @@
+name: Tests
+on:
+  pull_request:
+  push:
+    branches: [main]
+    paths-ignore: ['data/**', '**.md']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: pip install -e '.[test]'
+      - run: python -m pytest -q
+      - run: python -m ruff check pipeline
+      - run: python scripts/check_public_output.py
+      - run: python -m anthrion_signal.cli export
+      - run: npm ci && npm test && npm run build
+        working-directory: app

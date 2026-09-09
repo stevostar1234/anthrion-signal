@@ -1,0 +1,27 @@
+{
+  "ai_failures": 2,
+  "cache_hits": 7,
+  "candidates_shortlisted": 62,
+  "canonical_signals": 499,
+  "content_changed": true,
+  "content_digest": "a7c533b97a1a9b070d96b2142d29661c0ed629c1af779bc50f6d010f4e1dc1f2",
+  "deployment_status": "awaiting_build",
+  "duplicates_merged": 22,
+  "finished_at": "2026-09-09T11:25:16.605032+00:00",
+  "gemini_calls": 2,
+  "high_fit_signals": 1,
+  "material_updates": 0,
+  "new_signals": 18,
+  "raw_records": 4162,
+  "scheduled_times": [
+    "06:15",
+    "10:15",
+    "14:15",
+    "18:15",
+    "22:15"
+  ],
+  "scheduled_timezone": "Europe/London",
+  "sources_attempted": 2,
+  "sources_succeeded": 1,
+  "started_at": "2026-09-09T11:24:39+00:00"
+}
