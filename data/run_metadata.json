@@ -1,18 +1,18 @@
 {
   "ai_failures": 1,
-  "cache_hits": 21,
-  "candidates_shortlisted": 79,
-  "canonical_signals": 656,
+  "cache_hits": 23,
+  "candidates_shortlisted": 78,
+  "canonical_signals": 667,
   "content_changed": true,
-  "content_digest": "1eff95a285314bc1985ec6e924140c86e52bd69ca6291f17576dd058dbf6df30",
+  "content_digest": "69aff26ff000833d7f393627cbb7a089dc99c41b9f6fa79f4adc1b56543608f2",
   "deployment_status": "awaiting_build",
-  "duplicates_merged": 53,
-  "finished_at": "2026-09-10T17:01:54.752461+00:00",
+  "duplicates_merged": 60,
+  "finished_at": "2026-09-10T19:43:17.030132+00:00",
   "gemini_calls": 3,
   "high_fit_signals": 4,
-  "material_updates": 6,
-  "new_signals": 62,
-  "raw_records": 3520,
+  "material_updates": 0,
+  "new_signals": 11,
+  "raw_records": 2784,
   "scheduled_times": [
     "06:15",
     "10:15",
@@ -23,5 +23,5 @@
   "scheduled_timezone": "Europe/London",
   "sources_attempted": 7,
   "sources_succeeded": 3,
-  "started_at": "2026-09-10T16:59:43+00:00"
+  "started_at": "2026-09-10T19:41:38+00:00"
 }
