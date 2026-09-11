@@ -1,5 +1,7 @@
 import math
 import re
+from datetime import UTC, datetime
+from html import unescape
 from urllib.parse import urljoin
 
 from .models import Document, Provenance, Signal
@@ -117,7 +119,7 @@ def normalise_ocds(raw, prior=None):
     tag = " ".join(r.get("tag") or []).lower()
     stage = "award" if "award" in tag or "contract" in tag else "planning" if "planning" in tag else "tender"
     status = tender.get("status") or "unknown"
-    if "cancel" in tag or status in ("cancelled", "unsuccessful", "withdrawn"):
+    if "cancel" in tag and status != "withdrawn":
         status = "cancelled"
     notice_type = next((d.get("noticeType") for d in tender.get("documents", []) if d.get("noticeType")), None)
     value = tender.get("value") or {}
@@ -143,12 +145,15 @@ def normalise_ocds(raw, prior=None):
         delivery = item.get("deliveryLocation") or {}
         if delivery.get("description"):
             regions.append(delivery["description"])
-    framework_info = tender.get("techniques", {}).get("frameworkAgreement")
+    techniques = tender.get("techniques") or {}
+    framework_info = techniques.get("frameworkAgreement")
+    has_framework = techniques.get("hasFrameworkAgreement")
     framework = None
-    if isinstance(framework_info, dict) and framework_info:
-        framework = clean(framework_info.get("description") or "Framework agreement")
-    elif "framework agreement" in clean(tender.get("procurementMethodDetails")).lower():
-        framework = clean(tender.get("procurementMethodDetails"))
+    # The OCDS description is free-form procedure detail, not a framework name.
+    if has_framework is True or (has_framework is not False and isinstance(framework_info, dict) and framework_info):
+        framework = "Framework agreement"
+    elif has_framework is not False and "framework agreement" in clean(tender.get("procurementMethodDetails")).lower():
+        framework = "Framework agreement"
     if notice_type in ("UK13", "UK14", "UK15", "UK16"):
         framework = "Dynamic market"
     notice_docs = [d.url for d in docs if d.kind in ("tenderNotice", "awardNotice", "plannedProcurementNotice")]
@@ -226,18 +231,110 @@ def ted_text(value):
 def normalise_ted(raw):
     r = raw.data
     number = ted_text(r.get("publication-number"))
-    form = ted_text(r.get("form-type"))
-    stage = "award" if "result" in form.lower() else "planning" if "planning" in form.lower() else "tender"
-    title = ted_text(r.get("notice-title"))
-    countries = {"GBR": "GB", "DEU": "DE", "ITA": "IT", "ESP": "ES", "GRC": "GR", "SWE": "SE", "FIN": "FI", "DNK": "DK", "NOR": "NO"}
+    if not re.fullmatch(r"\d+-\d{4}", number):
+        raise ValueError("Missing TED publication number")
+    form = ted_text(r.get("form-type")).lower()
+    stage = "award" if form in ("result", "cont-modif") else "planning" if form in ("planning", "dir-awa-pre") else "tender" if form == "competition" else "unknown"
+    title = ted_text(r.get("title-proc")) or ted_text(r.get("notice-title"))
+    description = "\n\n".join(unique([ted_text(r.get("description-proc")), ted_text(r.get("description-lot"))]))
+    countries = {"GBR": "GB", "DEU": "DE", "ITA": "IT", "ESP": "ES", "GRC": "GR", "SWE": "SE", "FIN": "FI", "DNK": "DK", "NOR": "NO", "ISL": "IS"}
     region = ted_text(r.get("place-of-performance"))
-    return base(raw, title=title, description=title, url=f"https://ted.europa.eu/en/notice/-/detail/{number}",
-        buyer_name=ted_text(r.get("buyer-name")) or None, signal_type=classify(stage, title, ""), procurement_stage=stage,
-        external_ids=["ted:" + number], notice_type=ted_text(r.get("notice-type")),
+    buyer_countries = r.get("buyer-country") or r.get("place-of-performance") or []
+    if isinstance(buyer_countries, str):
+        buyer_countries = [buyer_countries]
+    dates, times = r.get("deadline-receipt-tender-date-lot") or [], r.get("deadline-receipt-tender-time-lot") or []
+    if isinstance(dates, str):
+        dates = [dates]
+    if isinstance(times, str):
+        times = [times]
+    deadlines = []
+    for i, day in enumerate(dates):
+        # Search arrays do not identify lots. Only one date and one time can be
+        # paired safely; multiple lots require the full notice for exact cutoffs.
+        value = day[:10] + "T" + times[0] if len(dates) == len(times) == 1 else day
+        if iso(value):
+            deadlines.append(iso(value))
+    framework_values = r.get("framework-agreement-lot") or []
+    framework = "Framework agreement" if any(v in ("fa-mix", "fa-w-rc", "fa-wo-rc") for v in framework_values) else None
+    value = money(r.get("total-value")) if stage == "award" else money(r.get("estimated-value-proc"))
+    currencies = r.get("total-value-cur") if stage == "award" else r.get("estimated-value-cur-proc")
+    if isinstance(currencies, list):
+        currencies = unique(currencies)
+        currencies = currencies[0] if len(currencies) == 1 else None
+    return base(raw, title=title, description=description or title, url=f"https://ted.europa.eu/en/notice/-/detail/{number}",
+        buyer_name=ted_text(r.get("buyer-name")) or None, signal_type=classify(stage, title, description, framework=framework) if stage != "unknown" else "STRATEGIC_INTENT", procurement_stage=stage,
+        external_ids=unique(["ted:" + number, "ted-notice:" + ted_text(r.get("notice-identifier")) if r.get("notice-identifier") else None]),
+        notice_type=ted_text(r.get("notice-type")), status="awarded" if stage == "award" else "active",
         published_at=iso(ted_text(r.get("publication-date"))), updated_at=iso(ted_text(r.get("publication-date"))),
-        deadline_at=iso(ted_text(r.get("deadline-receipt-tender-date-lot"))),
+        deadline_at=min(deadlines) if deadlines else None,
+        eligibility_text="Multiple lot deadlines are published. The earliest is shown; check the source notice for the relevant lot." if len(set(deadlines)) > 1 else None,
+        value_max=value, currency=currencies, framework=framework, incumbent_supplier=ted_text(r.get("winner-name")) or None,
         cpv_codes=re.findall(r"\d{8}", ted_text(r.get("classification-cpv"))), regions=[region] if region else [],
-        countries=unique([countries[c] for c in countries if c in region]))
+        countries=unique([countries[c] for c in buyer_countries if c in countries]))
 
 
-NORMALISERS = {"ocds": normalise_ocds, "govuk": normalise_govuk, "html": normalise_html, "ted": normalise_ted}
+def normalise_usaspending(raw):
+    r = raw.data
+    ident = r.get("generated_internal_id")
+    if not isinstance(ident, str) or not re.fullmatch(r"[A-Za-z0-9_\-.:]+", ident):
+        raise ValueError("Missing USAspending award identifier")
+    description = clean(r.get("Description"))
+    return base(raw, title=description or f"Contract award {r.get('Award ID', ident)}", description=description,
+        url="https://www.usaspending.gov/award/" + ident, external_ids=["usaspending:" + ident],
+        buyer_name=clean(r.get("Awarding Agency")) or None, incumbent_supplier=clean(r.get("Recipient Name")) or None,
+        signal_type="AWARD", procurement_stage="award", notice_type="Federal contract award", status="awarded",
+        countries=["US"], updated_at=iso(r.get("Last Modified Date")), contract_start=iso(r.get("Start Date")),
+        contract_end=iso(r.get("End Date")), value_max=money(r.get("Award Amount")), currency="USD")
+
+
+def grants_date(value):
+    if not value:
+        return None
+    for fmt in ("%Y-%m-%d-%H-%M-%S", "%m/%d/%Y"):
+        try:
+            # Grants.gov provides a date, not a guaranteed submission cutoff.
+            return datetime.strptime(value, fmt).replace(tzinfo=UTC).isoformat(timespec="seconds")
+        except ValueError:
+            pass
+    return None
+
+
+def normalise_grants(raw):
+    r = raw.data
+    if not str(r.get("id", "")).isdigit():
+        raise ValueError("Missing Grants.gov opportunity ID")
+    facts = r.get("facts") or {}
+    eligibility = clean(unescape(facts.get("applicantEligibilityDesc") or ""))
+    types = "; ".join(clean(t.get("description")) for t in facts.get("applicantTypes", []))
+    url = f"https://www.grants.gov/search-results-detail/{r['id']}"
+    document_url = canonical_url(facts.get("fundingDescLinkUrl") or "")
+    return base(raw, title=r["title"], description=clean(unescape(facts.get("synopsisDesc") or facts.get("forecastDesc") or r["title"])),
+        url=url, external_ids=["grants:" + str(r["id"])], buyer_name=facts.get("agencyName") or r.get("agency"),
+        signal_type="FUNDING", procurement_stage="planning" if r.get("status") == "forecasted" else "funding",
+        status="complete" if r.get("status") in ("closed", "archived") else "active", notice_type="Federal funding opportunity",
+        countries=["US"], published_at=grants_date(facts.get("postingDateStr") or r.get("openDate")),
+        updated_at=grants_date(facts.get("createTimeStampStr")),
+        deadline_at=grants_date(facts.get("responseDateStr") or r.get("closeDate")),
+        value_min=money(facts.get("awardFloor")), value_max=money(facts.get("awardCeiling")), currency="USD",
+        eligibility_text="\n".join(filter(None, [types, eligibility, clean(facts.get("responseDateDesc"))])) or None,
+        documents=[Document(title=clean(facts.get("fundingDescLinkDesc")) or "Funding announcement", url=document_url)] if document_url else [])
+
+
+def normalise_german(raw, prior=None):
+    from .german_notices import normalise_german_notice
+    return normalise_german_notice(raw, prior)
+
+
+def normalise_nyc(raw):
+    from .nyc_city_record import normalise_nyc_city_record
+    return normalise_nyc_city_record(raw)
+
+
+def normalise_spain(raw):
+    from .spain_notices import normalise_spain_notice
+    return normalise_spain_notice(raw)
+
+
+NORMALISERS = {"ocds": normalise_ocds, "govuk": normalise_govuk, "html": normalise_html, "ted": normalise_ted,
+               "usaspending": normalise_usaspending, "grants": normalise_grants,
+               "german_ocds": normalise_german, "nyc_city_record": normalise_nyc, "spain_placsp": normalise_spain}

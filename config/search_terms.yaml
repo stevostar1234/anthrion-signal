@@ -5,12 +5,13 @@ exclusions: [road resurfacing, building construction, catering services, grounds
 govuk_queries: [commercial pipeline digital, procurement pipeline technology, Salesforce, CRM transformation, case management, contact centre, citizen services, digital transformation procurement, data platform, artificial intelligence procurement, generative AI, AI agents, automation integration]
 markets:
   GB: {name: United Kingdom, enabled: true, ted_codes: [GBR]}
-  US: {name: United States, enabled: false, ted_codes: []}
-  IT: {name: Italy, enabled: false, ted_codes: [ITA]}
-  SE: {name: Sweden, enabled: false, ted_codes: [SWE]}
-  FI: {name: Finland, enabled: false, ted_codes: [FIN]}
-  DK: {name: Denmark, enabled: false, ted_codes: [DNK]}
-  'NO': {name: Norway, enabled: false, ted_codes: [NOR]}
-  DE: {name: Germany, enabled: false, ted_codes: [DEU]}
-  ES: {name: Spain, enabled: false, ted_codes: [ESP]}
-  GR: {name: Greece, enabled: false, ted_codes: [GRC]}
+  US: {name: United States, enabled: true, ted_codes: [], coverage: 'Federal funding and contract awards. Live federal tenders are not connected.'}
+  IT: {name: Italy, enabled: true, ted_codes: [ITA], coverage: 'TED notices; national-only procurement is not included.'}
+  SE: {name: Sweden, enabled: true, ted_codes: [SWE], coverage: 'TED notices; national-only procurement is not included.'}
+  FI: {name: Finland, enabled: true, ted_codes: [FIN], coverage: 'TED notices; national-only procurement is not included.'}
+  DK: {name: Denmark, enabled: true, ted_codes: [DNK], coverage: 'TED notices; national-only procurement is not included.'}
+  'NO': {name: Norway, enabled: true, ted_codes: [NOR], coverage: 'TED notices; national-only procurement is not included.'}
+  IS: {name: Iceland, enabled: true, ted_codes: [ISL], coverage: 'TED notices; national-only procurement is not included.'}
+  DE: {name: Germany, enabled: true, ted_codes: [DEU], coverage: 'TED notices; national-only procurement is not included.'}
+  ES: {name: Spain, enabled: true, ted_codes: [ESP], coverage: 'TED notices; national-only procurement is not included.'}
+  GR: {name: Greece, enabled: true, ted_codes: [GRC], coverage: 'TED notices; national-only procurement is not included.'}

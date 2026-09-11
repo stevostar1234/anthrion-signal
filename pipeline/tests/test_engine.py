@@ -94,26 +94,43 @@ def test_material_change_vs_cosmetic_and_old_updates(signal, analysis):
     assert merged.title == signal.title
 
 
+def test_postponed_nyc_update_clears_placeholder_deadline_without_losing_reopening(signal):
+    existing = signal.model_copy(update={"source": "nyc_city_record", "deadline_at": "2039-09-09T12:00:00Z"})
+    correction = existing.model_copy(update={"status": "postponed", "deadline_at": None})
+    corrected, changed = merge(existing, correction)
+    assert changed
+    assert corrected.status == "postponed"
+    assert corrected.deadline_at is None
+    assert "deadline_at" in corrected.changes[-1].fields
+    reopened = correction.model_copy(update={"updated_at": "2026-09-10T12:00:00Z", "status": "active", "deadline_at": "2026-10-01T12:00:00Z"})
+    restored, _ = merge(corrected, reopened)
+    assert restored.status == "active"
+    assert restored.deadline_at == reopened.deadline_at
+    stale, _ = merge(restored, correction)
+    assert stale.status == "active"
+    assert stale.deadline_at == reopened.deadline_at
+
+
 def test_score_and_confidence_math(signal, analysis, config, now):
     signal.analysis = analysis
-    validate_grounding(analysis, signal, config["company_profile"])
+    validate_grounding(analysis, signal, config)
     score(signal, config, now)
-    # 30.625 capability + 9 references + 10 delivery + 10 sector + 5 geography + 10 timing.
-    assert signal.known_weight == 85
-    assert signal.fit_score == round(100 * 74.625 / 85, 1)
-    assert next(c for c in signal.score_components if c.id == "commercial").points is None
-    assert next(c for c in signal.score_components if c.id == "feasibility").known_weight == 0
-    assert signal.confidence_score == 87.5  # 85*.7 + 100*.2 + 80*.1
+    # 60 * (5*1 + 5*.8)/10 + 25 + 15; no renormalisation or eligibility points.
+    assert signal.known_weight == 100
+    assert signal.fit_score == 94
+    assert [c.max_points for c in signal.score_components] == [60, 25, 15]
+    assert signal.confidence_score == 87.8  # 100*.4 + 65*.35 + 100*.25
     assert signal.recommendation == "PURSUE"
 
 
-def test_unknown_requirement_weight_is_not_a_negative(signal, analysis, config, now):
+def test_unmatched_requirement_stays_in_denominator(signal, analysis, config, now):
     signal.analysis = analysis
-    analysis.requirements[1].match_level = "UNKNOWN"
+    analysis.requirements[1].match_level = "NONE"
     score(signal, config, now)
     capability = signal.score_components[0]
-    assert capability.known_weight == 17.5
-    assert capability.points == 17.5
+    assert capability.known_weight == 60
+    assert capability.points == 30
+    assert signal.fit_score == 70
 
 
 def test_pending_analysis_has_no_fabricated_fit(signal, config, now):
@@ -134,12 +151,12 @@ def test_expired_cancelled_and_awarded_never_pursue(signal, analysis, config, no
 
 def test_grounding_rejects_invented_evidence_and_unknown_membership(signal, analysis, config):
     analysis.requirements[0].evidence.quote = "Unsupported invented claim"
-    with pytest.raises(ValueError, match="Evidence quote"):
-        validate_grounding(analysis, signal, config["company_profile"])
+    with pytest.raises(ValueError, match="cite buyer scope"):
+        validate_grounding(analysis, signal, config)
     analysis.requirements[0].evidence.quote = "Salesforce implementation"
-    analysis.feasibility = analysis.delivery.model_copy(deep=True)
+    analysis.eligibility_checks[0].status = "CONFIRMED_BLOCKER"
     with pytest.raises(ValueError, match="eligibility"):
-        validate_grounding(analysis, signal, config["company_profile"])
+        validate_grounding(analysis, signal, config)
 
 
 def test_structured_output_rejects_extra_fields_and_bad_importance(analysis):
@@ -164,6 +181,9 @@ def test_cache_invalidation(signal, config):
     assert cache_key(signal, changed) != first
     changed = copy.deepcopy(config)
     changed["runtime"]["model"] = "another-model"
+    assert cache_key(signal, changed) != first
+    changed = copy.deepcopy(config)
+    changed["capabilities"]["version"] += "new"
     assert cache_key(signal, changed) != first
 
 

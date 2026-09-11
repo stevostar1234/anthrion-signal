@@ -9,7 +9,8 @@ export interface Requirement {
   evidence: Evidence
   capability_id: string | null
   match_level: string
-  company_evidence_ids: string[]
+  company_evidence_ids?: string[]
+  possible_products?: string[]
   explanation: string
 }
 export interface ScoreComponent {
@@ -36,6 +37,11 @@ export interface Signal {
   signal_type: string
   procurement_stage: string
   status: string
+  lifecycle_state?: string
+  lifecycle_reason?: string
+  discovery_families?: string[]
+  delivery_priority?: 'platform' | 'ai' | 'other'
+  exclusion_reasons?: string[]
   notice_type: string | null
   published_at: string | null
   updated_at: string | null
@@ -56,23 +62,38 @@ export interface Signal {
   first_seen_at: string
   last_seen_at: string
   last_material_update: string
-  fit_score: number | null
-  confidence_score: number
-  known_weight: number
-  score_components: ScoreComponent[]
-  prefilter_score: number
+  // Optional legacy fields are accepted from older cached datasets only.
+  fit_score?: number | null
+  confidence_score?: number
+  known_weight?: number
+  score_components?: ScoreComponent[]
+  prefilter_score?: number
   prefilter_matches: string[]
   matched_capabilities: string[]
-  recommendation: string
-  score_explanation: string
-  ai_status: string
-  ai_model: string | null
-  ai_scored_at: string | null
-  analysis: {
+  recommendation?: string
+  score_explanation?: string
+  ai_status?: string
+  ai_model?: string | null
+  ai_scored_at?: string | null
+  analysis?: {
+    version?: string
     summary: string
+    assessed_scope?: string
+    scope_basis?: string
+    scope_evidence?: Evidence[]
+    solution_suggestion?: string
+    solution_evidence?: Evidence[]
+    solution_route?: { level: string; explanation: string; opportunity_evidence: Evidence[] }
+    requirements_completeness?: string
+    eligibility_checks?: {
+      text: string
+      status: string
+      evidence: Evidence
+      company_evidence_id: string | null
+    }[]
     requirements: Requirement[]
     risks: { text: string; kind: string; evidence: Evidence }[]
-    hard_blockers: { text: string; evidence: Evidence; company_evidence_id: string }[]
+    hard_blockers?: { text: string; evidence: Evidence; company_evidence_id: string }[]
     information_gaps: string[]
   } | null
   documents: { title: string; url: string; kind: string }[]
@@ -98,6 +119,8 @@ export interface Source {
   last_success: string | null
   records: number
   message: string | null
+  countries?: string[]
+  coverage?: string | null
 }
 export interface Dataset {
   schema_version: string
@@ -106,12 +129,12 @@ export interface Dataset {
   profile_version: string
   scoring_version: string
   sources: Source[]
-  capabilities: { id: string; label: string; family: string }[]
+  capabilities: { id: string; label: string; family: string; search_terms?: string[] }[]
   evidence_catalog: Record<
     string,
     { label: string; quote: string; page?: number; section?: string; document: string }
   >
-  markets: Record<string, { name: string; enabled: boolean }>
+  markets: Record<string, { name: string; enabled: boolean; coverage?: string }>
   signals: Signal[]
   run: {
     sources_attempted: number
@@ -119,9 +142,9 @@ export interface Dataset {
     raw_records: number
     new_signals: number
     material_updates: number
-    gemini_calls: number
-    cache_hits: number
-    ai_failures: number
+    gemini_calls?: number
+    cache_hits?: number
+    ai_failures?: number
     [key: string]: unknown
   }
 }
@@ -142,6 +165,7 @@ export interface Filters {
   cpv: string
   minValue: string
   maxValue: string
+  currency: string
   deadline: string
   change: string
 }

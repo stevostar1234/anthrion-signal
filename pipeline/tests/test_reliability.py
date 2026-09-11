@@ -104,19 +104,17 @@ def test_expired_early_engagement_is_not_actionable(signal, analysis, config, no
 
 
 def test_delivery_evidence_cannot_borrow_geography_points(signal, analysis, config):
-    analysis.delivery.company_evidence_ids = ["geographies"]
-    with pytest.raises(ValueError, match="own profile dimension"):
-        validate_grounding(analysis, signal, config["company_profile"])
+    analysis.delivery.opportunity_evidence[0].quote = "Countries: GB"
+    with pytest.raises(ValueError, match="actual buyer scope"):
+        validate_grounding(analysis, signal, config)
 
 
-def test_unavailable_ai_client_does_not_break_collection(signal, config, now, tmp_path, monkeypatch):
+def test_retired_ai_cannot_be_reactivated_by_old_credentials(signal, config, now, tmp_path, monkeypatch):
     signal.prefilter_score = 100
     monkeypatch.setenv("GEMINI_API_KEY", "synthetic-test-key")
     config["runtime"]["model"] = "test-model"
-    def unavailable(**_):
-        raise ValueError("Unavailable client")
-    monkeypatch.setattr("anthrion_signal.intelligence.genai.Client", unavailable)
+    config["runtime"]["max_ai_calls"] = 100
     stats = analyse_candidates([signal], config, tmp_path, now)
-    assert stats["ai_failures"] == 1
+    assert stats == {"gemini_calls": 0, "cache_hits": 0, "ai_failures": 0}
     assert signal.analysis is None and signal.fit_score is None
-    assert signal.ai_status == "failed"
+    assert signal.ai_status == "disabled"

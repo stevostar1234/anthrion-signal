@@ -21,3 +21,4 @@ data/.lock
 *.tmp
 playwright-report/
 test-results/
+test-results-*/

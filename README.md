@@ -1,88 +1,60 @@
 # Anthrion Signal
 
-Evidence-grounded procurement and commercial opportunity intelligence for Anthrion. A React/TypeScript dashboard is published to GitHub Pages; Python collectors and Gemini analysis run on GitHub Actions. Only public business evidence and public notices are used. There is no database or paid tender-data dependency.
+Public procurement and commercial opportunity discovery for Anthrion's sales team. The React/TypeScript console reads a static, validated dataset. Python collectors run locally or in GitHub Actions. Collection requires neither a language model nor a paid tender-data subscription.
 
-## Use the workspace
+## Workspace
 
-Start with **Top signals**, or choose live procurement, early engagement, pipeline, renewal, framework, funding or award views. Search across title, scope, buyer and reference. All filters, sorting, market selection and open signal links are URL-addressable.
+The console opens on **Live Opportunities**, ordered by recent publication. Salesforce, CRM and clearly related platform implementations appear first, including combined platform/AI projects. Standalone AI follows, then other relevant opportunities. Each group retains the selected recency, update, deadline or value order. There are no score thresholds or model assessments.
 
-The market selector covers the UK, US, Italy, Nordics, Germany, Spain and Greece. Nordics groups Sweden, Finland, Denmark, Norway and Iceland. Only the UK is monitored currently; other markets show their actual coverage state without substituting UK notices. Market selection also scopes overview counts, saved opportunities, deadlines and source coverage. Light/dark appearance and comfortable/compact list density are remembered in the current browser.
+The five refiners are **All Signals**, **Live Opportunities**, **Pre-market**, **Closing Soon**, and **Added today**. Pre-market combines requests for information, market engagement, pipeline and genuine future buying intent; these are not presented as open tenders. Unknown deadlines do not enter Closing Soon. Added today means first collected on the current Europe/London calendar date, not recently updated or published. Frameworks and funding remain available through notice-type filters without separate refiner cards.
 
-Open an opportunity to inspect its requirements, evidence, risks, documents and history. Fit and evidence confidence are separate. Unanalysed candidates show **Pending** and remain available for manual investigation. Unknown supplier eligibility never becomes an invented qualification or a hard blocker.
+The UK, US, Italy, Nordics, Germany, Spain and Greece are selectable. Nordics groups Sweden, Finland, Denmark, Norway and Iceland. Counts, saved records, search and filters are market-scoped. A healthy source does not imply complete market coverage or confirmed bidder eligibility.
 
-Saved opportunities and saved views are personal to the current browser. Use the view-link control or CSV export to share with colleagues. Deadline export produces an `.ics` calendar event. No private notes or team activity are published. This is a public intelligence site, not a shared private CRM.
+The dark glass console uses a measured virtual list: scrolling reveals records without pagination while only nearby rows remain mounted. Desktop has independently scrolling records and details; narrow screens use document scrolling and a detail drawer. The record panel places compact notice facts and capabilities above the complete source description. Full details and Open source notice stay in a bottom dock outside the scrolling content, including on mobile. The expanded detail view retains its own source action and a Back to record control. Arrow keys and Home/End navigate record selectors. Reduced-motion preferences pause decorative animation.
 
-## Runtime architecture
+Search, filters and sort sit between the brand and saved opportunities in the desktop header. They wrap within the header on smaller screens. Export is centred beside the glass refiners. The repeated list heading is visually hidden but retained for screen readers. A 57px action dock, compact market spacing and tighter description margins preserve more reading room without shrinking record typography; both dock actions retain 44px interaction targets.
 
-```text
-Official APIs and public pages
-  -> isolated collectors with frozen windows / overlap / retries
-  -> normalisation and provenance
-  -> exact identifiers, URLs, fingerprints, conservative fuzzy matching
-  -> material-change detection and deterministic candidate ranking
-  -> schema-constrained Gemini extraction with evidence validation
-  -> mechanical fit, confidence and recommendation calculations
-  -> validated public JSON -> Vite -> GitHub Pages
-```
+Refiner reflections share one continuous animation phase. Scrolling a separate record list or description does not redraw stationary glass or reset its lighting. Relevant document scrolling, carousel movement and resizing still update geometry; decorative lighting remains capped at 25 updates per second and pauses offscreen, in hidden tabs and for reduced motion.
 
-`pipeline/anthrion_signal` owns ingestion and intelligence. `config` defines sources, company evidence, markets, search concepts and score weights. `data` holds canonical records, public output, change history, source checkpoints and dedupe identifiers. `app` contains the user-facing product. Original PDFs, raw downloads, local credentials and the local AI cache are excluded from Git.
+Records show source descriptions, buyers, dates, values, capability matches, original notices, documents and timelines. Bookmarks and hidden-record choices belong to the current browser and synchronize between its tabs. Hide removes a record from ordinary results, counts and exports; Show hidden in the sort menu shows only hidden records within the current market and filters, where Unhide restores them. Saved views, comparison and the Latest updates navigation have been removed. URLs, CSV exports and calendar deadlines can be shared. This public discovery tool does not publish private notes or provide a shared private CRM.
 
-## UK source coverage
+## Collection and Availability
 
-| Source | Implementation | Collection behavior |
-| --- | --- | --- |
-| Find a Tender | Official OCDS releases and compiled record API | Fixed six-hour windows, overlap, cursor pagination, rate pacing, bounded sparse-record enrichment |
-| Contracts Finder | Official OCDS search and record retrieval | Fixed daily windows, overlap, pagination; planning through implementation and bounded record enrichment |
-| Public Contracts Scotland | Official monthly OCDS API | Refetch current and previous month, including public Quick Quote awards; deduplicate |
-| Sell2Wales | Official monthly OCDS API | Current and previous month; isolated errors and retained previous results |
-| GOV.UK | Official Search API | Several strategic query families with publication windows and per-query catch-up |
-| GCA Digital Outcomes | Public listing and public detail HTML | Source facts, framework, status and available deadlines; no login automation |
-| GCA Upcoming Agreements | Public server-rendered listings and detail pages | Framework stages, approximate timing, linked official notices |
-| TED | Official v3 Search API, optional | Configurable markets, CPV families, iterative pagination; disabled by default |
+Official APIs and permitted public listings feed bounded collectors with overlapping windows, checkpoints and retries. Source facts are normalized, deduplicated using procedure identifiers and aliases, checked for availability, and ordered by delivery priority and publication recency. Validated public JSON is built with Vite and published through GitHub Pages.
 
-The current GCA public endpoints use `gca.gov.uk`. The older commercial-agency hosts redirect. FTS was verified to return empty results for a comma-separated multi-stage filter: the adapter retrieves the full feed when several stages are requested and filters the returned tags locally. A one-stage configuration uses the documented parameter. Scotland's API omits `releases` for empty partitions; these are treated as successful empty responses.
+Awards, inferred incumbent renewals, cancellations, withdrawals, expired response windows and explicitly unavailable routes are excluded from results, saved opportunities and exports. Canonical terminal records remain internally so later awards or cancellations can retire earlier leads. Ambiguous bidder eligibility is not invented; inspect the source before pursuing.
 
-Sell2Wales returned HTTP 500 from its documented notice endpoints during initial verification. It remains configured, visibly reports its health, and will retry on future runs. Welsh notices may also be published by UK-wide sources. Coverage is never represented as healthy when a source has failed. GCA detail pages that lead to sign-in are not collected; their public listing facts remain available.
+Capability classification uses explicit phrases, translated aliases, functional needs and CPV codes. Context-only words do not promote standalone AI into the platform-first group. Supplier-portal hostnames do not count as Salesforce implementation requirements. The company profile retains supplied public facts without assuming framework memberships, certifications or overseas delivery presence.
 
-Disabled adapter definitions are included for eTendersNI, NHS Atamis, NHS Supply Chain/Jaggaer, MOD DSP and pipeline, The Chest, YORtender, ProContract, In-tend, other Jaggaer portals, Innovate UK, SBRI, EU Funding & Tenders, NATO, NCIA, NSPA, World Bank, EBRD, SAM.gov and UNGM. They are **not active coverage**. `EmailAlertCollector` defines the future integration boundary; enable one only after adding an authorised API/export/mailbox implementation and normaliser tests.
+Gemini dispatch, its SDK dependency, workflow credentials and score-based product features have been retired. Historical canonical analysis and offline validation helpers remain for migration/history, but public serialization strips model analysis, recommendations and scores. Old score-filter URLs migrate to source-only views. Legacy `--no-ai` remains accepted; nonzero `--max-ai` is rejected.
 
-## Company grounding
+## Sources
 
-`config/company_profile.yaml` is transcribed from the supplied EuroForce profile. Public branding is Anthrion; historical entities remain aliases. Every capability retains a page/section reference. The anonymous Finnish support case and the named Qt Group case remain separate.
+| Source | Interface and safeguards |
+| --- | --- |
+| Find a Tender | Official OCDS; six-hour windows, cursor resume, overlap, persistent Retry-After deferral and bounded enrichment |
+| Contracts Finder | Official OCDS; daily windows, pagination, overlap and bounded record enrichment |
+| Public Contracts Scotland | Official monthly OCDS; resumable rotation across months and notice types |
+| Sell2Wales | Official OCDS currently has upstream errors; a permitted public-listing fallback provides explicitly partial coverage |
+| GOV.UK | Official Search API; rotating buying-intent queries, excluding general directory/profile content |
+| Digital Outcomes | Public listing/detail pages; paginated collection, cached details and explicit submission deadlines |
+| GCA Upcoming Agreements | Public listings/details; framework stages, approximate timing and official links |
+| TED Europe | Official v3 Search API; configured European markets, CPV/keyword discovery and lifecycle mapping |
+| German Public Procurement | Official paired daily OCDS/eForms exports; completed days, national-only notices and TED aliases |
+| Spanish Public Procurement | Official PLACSP Atom/CODICE; bounded pending pages, terminal updates and source-local deadline safeguards |
+| NYC City Record | Official DCAS/Socrata API; daily current/recent notices, stable cursor and New York timezone handling |
+| Grants.gov | Official funding search/details; actual detail-call budget and reuse of unchanged facts |
 
-The profile contains no assumed framework memberships, certifications, insurance, financial capacity or US delivery presence. Configure actual supplier eligibility in `eligibility` before using it to establish qualification or a hard blocker. Update `version` when editing facts. The cache also hashes the actual configuration content, so accidental omissions to bump the version do not reuse obsolete analysis.
+Failures preserve previous records and completed checkpoints. Budget-limited results are partial, not complete coverage. Retries are bounded and TLS verification stays enabled. Source-specific reuse terms remain applicable; linked documents do not automatically share a dataset's licence.
 
-## Relevance and scoring
+USAspending is disabled because it supplies awards rather than new competitions. Registry placeholders for SAM.gov, regional supplier portals and multilateral procurement are not active coverage. Activate additions only after interface, reuse, lifecycle, deadline and supplier-access checks.
 
-The first pass combines configurable CPV prefixes, phrase families, capability concepts, BM25 similarity and obvious exclusions. It is a **candidate rank**, never a fit score. Gemini receives only candidate source facts and the curated public company evidence, then returns a constrained requirement and evidence schema.
+- [European free APIs](docs/free-europe-apis-2026-09-11.md)
+- [US/global APIs and GitHub budget](docs/free-us-global-apis-actions-budget-2026-09-11.md)
+- [Source repairs and remaining limits](docs/source-reliability-2026-09-11.md)
+- [Source-only local trial and verification](docs/source-only-discovery-2026-09-11.md)
 
-Top signals includes plausible-or-better analysed fits (72+) and high-relevance pending candidates (40+ prefilter), excluding closed deadlines, cancellations, awards and known low-priority matches. The complete high-recall collection remains available in All signals. GOV.UK staff biographies and organisation directory entries are excluded before analysis.
-
-All quotes are verified against the supplied source text. Profile IDs must exist; positive mappings must cite their actual capability. Named reference levels require actual case IDs. Feasibility and hard blockers require explicitly configured eligibility facts. Model responses that fail validation are discarded and retried within the call budget. Gemini cannot assign the final score.
-
-| Dimension | Maximum weight |
-| --- | ---: |
-| Importance-weighted requirement coverage | 35 |
-| Relevant references and case outcomes | 15 |
-| Delivery model fit | 10 |
-| Documented sector fit | 10 |
-| Geography and governance | 5 |
-| Configured commercial preferences | 10 |
-| Observable timing/actionability | 10 |
-| Procurement feasibility | 5 |
-
-Match strengths are `DIRECT=1`, `STRONG_ADJACENT=.75`, `WEAK_ADJACENT=.35`, `NONE=0`, `UNKNOWN=null`. Requirement points use importance-weighted strengths. Unknown requirements proportionally reduce known capability weight. Unknown dimensions are excluded from the denominator:
-
-```text
-fit = 100 * earned points / known weight
-confidence = 70% * known rubric coverage + 20% * source quality + 10% * evidence completeness
-```
-
-Timing is recalculated every run, even when content and AI analysis are unchanged. A pending analysis does not receive a fit score from timing alone. Expired, cancelled and awarded notices cannot receive `PURSUE`. A renewal is an explicitly inferred signal from a published contract or maximum extension end, not a claim that a replacement tender is confirmed.
-
-Commercial fit remains unknown until comparable values and preferences are supplied. Edit `commercial_preferences` for minimum viable value, maximum comfortable value and preferred ranges. GBP value filters/sorting deliberately avoid comparing unconverted currencies.
-
-## Local development
+## Local Development
 
 Python 3.12+ and Node 22 are recommended.
 
@@ -90,42 +62,33 @@ Python 3.12+ and Node 22 are recommended.
 python -m venv .venv
 .\.venv\Scripts\python -m pip install -e '.[test]'
 Copy-Item .env.example .env
-# Configure GEMINI_API_KEY locally. Do not commit .env.
-.\.venv\Scripts\python -m anthrion_signal.cli ingest --days 7 --max-ai 10
+.\.venv\Scripts\python -m anthrion_signal.cli ingest --days 7 --max-pages 12
 cd app
 npm ci
-npm run dev -- --port 4174
+npm run dev -- --host 127.0.0.1 --port 4174
 ```
 
-The default local route is `http://127.0.0.1:4174/anthrion-signal/`. `VITE_BASE_PATH` overrides the repository path, including `/` for a custom domain. The pipeline can run without Gemini. It publishes deterministically and marks evidence analysis pending.
+The local route is `http://127.0.0.1:4174/anthrion-signal/`. `VITE_BASE_PATH` overrides the repository path. No enabled provider requires a model key. Keep credentials out of frontend variables, public data and Git.
 
-## Configuration and cost
+`python -m anthrion_signal.cli rescore` is the compatibility command for rebuilding source classification and publication without contacting providers. `export` copies validated public data into the frontend. On Windows, stop a preview process that holds the output JSON open before an atomic dataset update, then restart it.
 
-`GEMINI_API_KEY` is a GitHub Secret. `GEMINI_MODEL`, `MAX_AI_CALLS_PER_RUN`, `AI_CONCURRENCY` and `AI_MIN_PREFILTER_SCORE` are GitHub repository variables or local environment variables. The model is never hard-coded in runtime Python. The initial tested model is `gemini-3.5-flash`; 3.8 was available but returned repeated capacity errors during verification.
+Use `--refresh-daily` for a deliberate bounded recheck of a daily snapshot after changing discovery rules. It skips the local daily refresh interval, not provider Retry-After limits; normal scheduled runs leave it off.
 
-Default budget: 30 calls per run, including retries, two concurrent requests, prefilter threshold 25. Valid results are cached by material content, company profile, scoring configuration and model. Completed analyses are persisted in canonical JSON, so unchanged records do not need a cache download to avoid re-analysis. Temporary AI cache files are additionally cached by Actions. A quota or authentication error stops further AI dispatch for that run; ingestion and publication continue. Free-tier eligibility and quotas depend on the Google project. Set a project billing budget if billing is enabled.
+## Scheduling and Budget
 
-## Scheduling and deployment
+The workflow definition runs at **06:15, 08:55, 10:15, 14:15 and 18:15 Europe/London**, with DST handling. The 08:55 run replaces the former 22:15 slot; the total remains five per day. It supports manual collection and existing-data deployment. Main-branch code pushes rebuild; source-state commits do not recursively trigger collection.
 
-The production workflow runs at **06:15, 10:15, 14:15, 18:15 and 22:15 Europe/London** with automatic DST handling. `workflow_dispatch` can collect immediately or redeploy existing data. Main-branch code pushes rebuild existing intelligence. Source state commits do not recursively trigger workflows.
+The repository is currently public, so standard GitHub-hosted runner use is free. External procurement requests do not consume GitHub REST API quota. Five scheduled ticks mean 150-155 cycles per month, not a monthly API-call entitlement. Providers impose separate limits: daily sources skip completed snapshots, partial work resumes, caches avoid needless detail fetches, and Retry-After delays are respected. Storage, larger runners and any future private-repository allowance are separate. See the cited budget report.
 
-The workflow validates data, runs Python and UI tests, checks public output, builds the site, checks desktop/mobile browser flows, persists canonical state and deploys with the supported Pages artifact mechanism. Content or source-health changes publish immediately. Unchanged verified feeds publish once daily for freshness. A failed deployment is not recorded as successful and is retried on the next eligible run. Scheduled Actions can occasionally be delayed by GitHub; the UI reports actual publication/source times.
+The workflow validates public output, tests, builds, checks desktop/mobile flows, commits source state and deploys through GitHub Pages. Publication is recorded only after deployment succeeds. Times are scheduled starts, not guaranteed completion times: GitHub can delay or drop scheduled runs under load and disables public scheduled workflows after 60 days without repository activity. Overlapping checkpoints protect continuity. Local edits do not publish until deliberately pushed/deployed. See [GitHub's schedule documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
 
-Queued builds check out the current main branch, and successful publication records the exact signature of the artifact that was deployed. The browser suite also checks keyboard navigation, market persistence, narrow/short layouts and automated WCAG AA accessibility rules in both themes.
+## Retention and Verification
 
-## Expanding markets
-
-The configuration includes GB, US, Italy, Sweden, Finland, Denmark, Norway, Germany, Spain and Greece. Only GB is enabled initially. Enable the appropriate markets and TED in `sources.yaml` for European expansion, validate live queries and translated evidence, and add local official sources where TED does not cover lower-value procurement. US expansion requires an implemented SAM.gov adapter and its own official API key. Market coverage never implies a documented Anthrion delivery presence.
-
-## Retention
-
-Current records retain 180 days of recent updates plus all records with a future deadline or contract/extension end. Expired older canonical records move into deterministic monthly `data/archive/YYYY-MM.jsonl.gz` partitions. `archive_index.json` preserves their identifiers and fingerprints; a later related notice restores its canonical history before merging. Archives contain the same compact source facts and provenance, not full downloaded tender documents. The browser loads only `current.json`.
-
-## Verification and troubleshooting
+Canonical records retain 180 days of recent updates plus future deadlines or contract ends. Older records move into monthly compressed archives with a matching index; later related notices can restore history. The browser loads only public `current.json`, not canonical history or archives.
 
 ```powershell
 .\.venv\Scripts\python -m pytest -q
-.\.venv\Scripts\python -m ruff check pipeline
+.\.venv\Scripts\python -m ruff check pipeline scripts/check_public_output.py
 .\.venv\Scripts\python -m anthrion_signal.cli validate
 .\.venv\Scripts\python scripts/check_public_output.py
 cd app
@@ -135,20 +98,6 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-Live integration mode: `python -m anthrion_signal.cli ingest --sources find_tender,contracts_finder --days 1 --max-pages 10 --max-ai 2`. Tests themselves require no external APIs.
+Tests use local fixtures, not paid APIs. Review source-health metadata and Actions summaries for partial coverage. Never disable TLS verification to repair a source. Verify an interrupted collector has stopped before removing its local lock.
 
-Use source-health timestamps and the Action run summary to diagnose gaps. A rate limit preserves completed window checkpoints and resumes later. Never disable TLS verification to fix certificate problems; the collector uses the platform trust store. If interrupted locally, confirm the collector process is stopped before removing `data/.lock`. Malformed AI output stays pending/failed with no fabricated result. Public UI errors retain a previously loaded feed where available.
-
-For first-time deployment instructions, see [SETUP.md](SETUP.md).
-
-## Primary documentation
-
-- [Find a Tender API](https://www.find-tender.service.gov.uk/apidocumentation/1.0/GET-ocdsReleasePackages)
-- [Contracts Finder API](https://www.contractsfinder.service.gov.uk/apidocumentation)
-- [Scotland API](https://api.publiccontractsscotland.gov.uk/v1)
-- [Sell2Wales publication policy](https://www.sell2wales.gov.wales/helpandresources/ocds/publicationpolicy)
-- [TED Search API](https://docs.ted.europa.eu/ODS/latest/reuse/search-api.html)
-- [Gemini structured output](https://ai.google.dev/gemini-api/docs/structured-output)
-- [GitHub Actions schedules](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onschedule)
-
-Contains public sector information licensed under the Open Government Licence v3.0. Source notice copyrights and reuse terms continue to apply. No complete tender documents are copied into the public repository.
+See [SETUP.md](SETUP.md) for deployment configuration. Contains public-sector information under the Open Government Licence v3.0 where applicable; other source terms continue to apply. Complete tender documents and supplied private files are not copied into the public repository.

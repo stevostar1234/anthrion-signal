@@ -71,7 +71,7 @@ class Blocker(StrictModel):
     company_evidence_id: str
 
 
-class Analysis(StrictModel):
+class LegacyAnalysis(StrictModel):
     summary: str = Field(min_length=10, max_length=1800)
     requirements: list[Requirement] = Field(max_length=16)
     references: ReferenceAssessment
@@ -83,6 +83,62 @@ class Analysis(StrictModel):
     hard_blockers: list[Blocker] = Field(max_length=8)
     information_gaps: list[str] = Field(max_length=12)
     recommendation_evidence: list[Evidence]
+
+
+class RequirementMapping(StrictModel):
+    text: str = Field(min_length=3, max_length=800)
+    importance: int = Field(ge=1, le=5)
+    category: str
+    evidence: Evidence
+    capability_id: str | None
+    match_level: Literal["DIRECT", "STRONG", "PLAUSIBLE", "WEAK", "NONE"]
+    possible_products: list[str] = Field(max_length=5)
+    explanation: str = Field(min_length=5, max_length=1200)
+
+    @model_validator(mode="after")
+    def grounded_mapping(self):
+        if self.match_level != "NONE" and not self.capability_id:
+            raise ValueError("A positive mapping needs a capability identifier")
+        return self
+
+
+class SolutionRoute(StrictModel):
+    level: Literal["EXPLICIT_ECOSYSTEM", "VENDOR_NEUTRAL_DIRECT", "FUNCTIONAL_ARCHITECTURE", "ADJACENT", "INDIRECT", "NONE"]
+    explanation: str = Field(min_length=5, max_length=1500)
+    opportunity_evidence: list[Evidence] = Field(min_length=1, max_length=5)
+
+
+class DeliveryAssessment(StrictModel):
+    level: Literal["BUILD", "IMPLEMENT_AND_ADVISE", "MANAGED_SUPPORT", "DISCOVERY", "CONTRACT_STAFF", "LICENCES", "NONE"]
+    explanation: str = Field(min_length=5, max_length=1500)
+    opportunity_evidence: list[Evidence] = Field(min_length=1, max_length=5)
+
+
+class EligibilityCheck(StrictModel):
+    text: str = Field(min_length=5, max_length=700)
+    status: Literal["CHECK_REQUIRED", "CONFIRMED_BLOCKER", "PARTNER_REQUIRED"]
+    evidence: Evidence
+    company_evidence_id: str | None
+
+
+class Analysis(StrictModel):
+    version: Literal["2.0"]
+    summary: str = Field(min_length=10, max_length=1800)
+    assessed_scope: str = Field(min_length=5, max_length=800)
+    scope_basis: Literal["WHOLE_REQUIREMENT", "SEPARATELY_ADDRESSABLE_LOT", "PARTIAL_OR_UNCERTAIN"]
+    scope_evidence: list[Evidence] = Field(min_length=1, max_length=3)
+    requirements: list[RequirementMapping] = Field(min_length=1, max_length=30)
+    solution_route: SolutionRoute
+    delivery: DeliveryAssessment
+    solution_suggestion: str = Field(min_length=10, max_length=1200)
+    solution_evidence: list[Evidence] = Field(min_length=1, max_length=5)
+    requirements_completeness: Literal["DETAILED", "SUMMARY", "SPARSE"]
+    eligibility_checks: list[EligibilityCheck] = Field(max_length=12)
+    risks: list[Risk] = Field(max_length=12)
+    information_gaps: list[str] = Field(max_length=12)
+
+
+Lifecycle = Literal["OPEN", "EARLY_ENGAGEMENT", "FUTURE", "AWARDED", "CLOSED", "EXPIRED", "CANCELLED", "WITHDRAWN", "UNKNOWN"]
 
 
 class ScoreComponent(StrictModel):
@@ -121,6 +177,16 @@ class Change(StrictModel):
 
 
 class Signal(StrictModel):
+    @model_validator(mode="before")
+    @classmethod
+    def migrate_incomplete_assessment(cls, data):
+        if isinstance(data, dict) and isinstance(data.get("analysis"), dict):
+            analysis = data["analysis"]
+            if analysis.get("version") == "2.0" and "scope_basis" not in analysis:
+                return {**data, "analysis": None, "fit_score": None, "known_weight": 0,
+                        "score_components": [], "analysis_cache_key": None, "ai_status": "pending"}
+        return data
+
     id: str
     fingerprint: str = ""
     ocid: str | None = None
@@ -139,6 +205,12 @@ class Signal(StrictModel):
     procurement_stage: str
     notice_type: str | None = None
     status: str = "unknown"
+    lifecycle_state: Lifecycle = "UNKNOWN"
+    lifecycle_reason: str = "Source status requires verification."
+    discovery_version: str | None = None
+    discovery_families: list[str] = Field(default_factory=list)
+    delivery_priority: Literal["platform", "ai", "other"] = "other"
+    exclusion_reasons: list[str] = Field(default_factory=list)
     published_at: str | None = None
     updated_at: str | None = None
     deadline_at: str | None = None
@@ -171,7 +243,7 @@ class Signal(StrictModel):
     score_components: list[ScoreComponent] = Field(default_factory=list)
     score_explanation: str = "Awaiting evidence analysis."
     recommendation: str = "REVIEW"
-    analysis: Analysis | None = None
+    analysis: Analysis | LegacyAnalysis | None = None
     ai_status: str = "pending"
     ai_model: str | None = None
     ai_scored_at: str | None = None
@@ -192,6 +264,8 @@ class SourceHealth(StrictModel):
     last_success: str | None = None
     records: int = 0
     message: str | None = None
+    countries: list[str] = Field(default_factory=list)
+    coverage: str | None = None
 
 
 class Dataset(StrictModel):

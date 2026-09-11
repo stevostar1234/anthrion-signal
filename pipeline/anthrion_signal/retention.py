@@ -3,6 +3,7 @@ from collections import defaultdict
 from datetime import timedelta
 
 from .dedupe import exact_keys
+from .discovery import lifecycle
 from .models import Signal
 from .utils import atomic_bytes, atomic_json, parse_date, read_json
 
@@ -11,7 +12,7 @@ def is_current(signal, now, retention_days):
     end = parse_date(signal.extension_end or signal.contract_end)
     deadline = parse_date(signal.deadline_at)
     recent = parse_date(signal.updated_at) or parse_date(signal.first_seen_at)
-    return bool((deadline and deadline >= now) or (end and end >= now)
+    return bool(lifecycle(signal, now)[0] in ("OPEN", "EARLY_ENGAGEMENT", "FUTURE") or (deadline and deadline >= now) or (end and end >= now)
                 or now - recent < timedelta(days=retention_days))
 
 

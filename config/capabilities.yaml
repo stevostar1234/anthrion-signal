@@ -1,0 +1,226 @@
+version: '2026-09-11.1'
+charter: >-
+  Anthrion provides Salesforce platform and ecosystem development, administration,
+  architecture, implementation, integration, migration, managed support and technical
+  consulting. It also implements standalone AI, LLMs, agents and automation using
+  suitable models and platforms. Assess the buyer's functional needs, not only named
+  products. Product lists are examples, not a delivery whitelist. A plausible platform
+  route does not establish supplier eligibility, credentials or past references.
+source: Company capability charter approved for Anthrion Signal
+discovery:
+  backfill_days: 365
+  backfill_page_fraction: 0.25
+  minimum_candidate_score: 12
+  delivery_evidence_terms: [implementation, implement, development, develop, configuration, configure, integration, integrate, migration, migrate, enhancement, build, implementierung, entwicklung, konfiguration, systemintegration, implementazione, sviluppo, configurazione, integrazione, migrazione, implantación, implementación, desarrollo, integración, migración, mise en oeuvre, développement, intégration, migration, implementatie, ontwikkeling, implementering, utveckling, utvikling, udvikling, kehittäminen, toteutus, υλοποίηση, ανάπτυξη, διασύνδεση, implementação, desenvolvimento]
+  commercial_intent: [procurement, tender, rfp, rfq, rfi, itt, eoi, request for proposal, request for information, request for quotation, supplier required, seeking supplier, implementation partner, delivery partner, planned procurement, market engagement, contract opportunity, call for suppliers, framework, dynamic purchasing system]
+  publication_intent: [planned procurement, procurement pipeline, market engagement, supplier engagement, seeking suppliers, seeking a supplier, seeking partners, call for suppliers, invitation to tender, invitations to tender, tender opportunity, contract opportunity, request for proposals, request for information, call for proposals, funding competition, apply for funding, expression of interest, expressions of interest]
+  non_opportunity_formats: [person, role, organisation, minister, ministerial_role, world_location, policy_group, personal_information_charter, case_study, algorithmic_transparency_record, service_standard_report, manual_section, hmrc_manual_section, impact_assessment]
+  technical_context: [software, platform, application, system, implementation, integration, migration, development, automation, digital, cloud, technology, workflow, solution, api, data]
+  incompatible_platforms: [microsoft dynamics, dynamics 365, hubspot, oracle siebel, sap crm, servicenow]
+  mandatory_constraints: [no alternative, alternatives will not be accepted, alternative platforms will not be considered, alternative crm platforms will not be considered, all work must be implemented within, only this platform, mandatory]
+  permanent_roles: [permanent employee, permanent position, permanent role, employee vacancy, permanent vacancy, full time employee, full-time employee]
+  irrelevant_physical: [road resurfacing, building construction, construction materials, catering services, grounds maintenance, office furniture, medical consumables, refuse collection, asbestos removal, boiler replacement, security guarding, sulfuric acid, sulphuric acid, tunnel activation, shaft equipment installation, auger compactors, interior compactors]
+  physical_scope_titles: [timber preservation, dampness control, rot eradication, community audiology, audiology services, fire systems, fire alarm system, fire suppression system, sulfuric acid, sulphuric acid, tunnel activation, shaft equipment, auger compactors, interior compactors]
+  digital_scope_titles: [software, platform, application, crm, artificial intelligence, ai, integration, automation, digital, information system, management system]
+  non_technical_cpv_prefixes: ['45', '50', '60', '63', '65', '66', '71', '85', '90', '98']
+  non_technical_service_phrases: [insurance cover, insurance brokerage, community pharmacy services, clinical pharmacy services, estates design and construction consultancy, principal contractor, building maintenance services, care home provision, appraisal of real estate, appraisals of real estate, administer civil service exams, early college credit opportunities, industry-recognized credentialing programs]
+  company_excluding_eligibility: [requested services are limited to government entities, participation is limited to government entities, only public institutions may apply]
+  software_scope_terms: [software, crm, artificial intelligence, machine learning, large language model, llm, ai agent, ai assistant, salesforce, systems integration, system integration, application integration, data migration, workflow automation, business process automation, customer platform, data platform, analytics platform, digital transformation]
+capabilities:
+  - id: salesforce
+    label: Salesforce platform
+    family: CRM & platforms
+    explicit: [Salesforce, Salesforce CRM, Customer 360, Headless 360, Agentforce 360 Platform, Lightning Platform, Force.com, Lightning Web Components, Visualforce, Salesforce Flow, Flow Builder, OmniStudio, Salesforce Identity, Salesforce Shield, Hyperforce]
+    contextual: [Lightning, Apex, LWC]
+    needs: [customer application platform, enterprise application platform, custom business application]
+    products: [Salesforce Platform, Headless 360, Flow, OmniStudio]
+    patterns: [Custom business applications with governed data, permissions and workflow]
+    queries: [Salesforce, Salesforce implementation, Salesforce professional services]
+  - id: crm
+    label: CRM & customer platforms
+    family: CRM & platforms
+    explicit: []
+    needs: [CRM, customer relationship management, relationship management platform, customer management system, customer engagement platform, customer platform, customer database, customer information system, client relationship management, client management, contact management, account management, single customer view, single client view, single view of customer, single view of the customer, 360 degree customer view, CRM replacement, new cloud CRM]
+    products: [Sales Cloud, Service Cloud, Data 360]
+    patterns: [Vendor-neutral CRM selection and implementation, Replacement of legacy customer systems]
+    queries: [CRM procurement, customer relationship management tender]
+  - id: relationships
+    label: Relationship management
+    family: CRM & platforms
+    needs: [stakeholder management, constituent management, citizen relationship management, member management, membership management, supporter management, donor management, fundraising management, volunteer management, beneficiary management, service user management, alumni management, student relationship management, partner management, supplier relationship management, grantee management, applicant management, tenant management, resident management, customer lifecycle, engagement history, relationship history]
+    products: [Salesforce Platform, Nonprofit Cloud, Education Cloud, Public Sector Solutions]
+    patterns: [Relationship records, engagement history and stakeholder workflows]
+    queries: [stakeholder management procurement, donor management tender]
+  - id: service
+    label: Case management & service
+    family: Service transformation
+    explicit: [Service Cloud, Public Sector Solutions]
+    needs: [case management, casework, case working, case handling, case processing, case workflow, case tracking, case allocation, case triage, complaints management, complaint handling, enquiry management, inquiry management, FOI management, freedom of information management, subject access request management, information rights management, incident management platform, request management system, referral management, claims management, application processing, licensing applications, permit management, investigation management, enforcement cases, appeals management, grievance management, ombudsman case management, support tickets, workflow driven case system]
+    products: [Service Cloud, Public Sector Solutions, Experience Cloud, Flow, Agentforce]
+    patterns: [Case intake, triage, ownership, evidence, audit history and external self-service]
+    queries: [case management procurement, complaints management tender, regulatory casework system]
+  - id: contact_centre
+    label: Contact centre & customer service
+    family: Service transformation
+    explicit: [Service Cloud Voice]
+    needs: [contact centre, contact center, call centre, call center, customer service transformation, customer support platform, omnichannel service, digital customer service, unified agent desktop, customer service console, telephony integration, email to case, intelligent routing, customer service automation, customer self service]
+    contextual: [telephony, CTI, IVR, helpdesk, live chat, web chat]
+    products: [Service Cloud, Agentforce, Experience Cloud, MuleSoft]
+    patterns: [Service workflows integrated with telephony and customer context]
+    queries: [contact centre implementation, customer service platform procurement]
+  - id: portals
+    label: Portals & self-service
+    family: CRM & platforms
+    explicit: [Experience Cloud, Community Cloud]
+    needs: [customer portal, citizen portal, member portal, partner portal, supplier portal, dealer portal, student portal, patient portal, resident portal, tenant portal, applicant portal, grant portal, self service website, digital self service, secure portal, digital front door, external user platform, online service portal, digital services platform, application portal, web forms platform, digital application process]
+    products: [Experience Cloud, Salesforce Platform, Service Cloud, Heroku]
+    patterns: [Authenticated external access to records, cases, applications and workflow]
+    queries: [customer portal supplier, citizen portal tender]
+  - id: sales_revenue
+    label: Sales, commerce & revenue
+    family: CRM & platforms
+    explicit: [Sales Cloud, Revenue Cloud, Salesforce CPQ, Commerce Cloud, B2B Commerce, B2C Commerce, Demandware]
+    needs: [lead management, sales automation, sales force automation, sales pipeline, opportunity management, sales forecasting, territory management, partner sales, dealer management, sales engagement, quotation system, quote management, CPQ, configure price quote, pricing engine, subscription management, billing transformation, quote to cash, order to cash, revenue operations, ecommerce platform, digital commerce platform, online storefront]
+    contextual: [order management, contract management, billing, pricing, product catalogue]
+    products: [Sales Cloud, Revenue Cloud, Commerce Cloud, Experience Cloud]
+    patterns: [Lead-to-order, quotation, subscriptions and connected commercial operations]
+    queries: [sales automation procurement, quote to cash implementation, ecommerce platform tender]
+  - id: marketing
+    label: Marketing & engagement
+    family: CRM & platforms
+    explicit: [Marketing Cloud, Account Engagement, Pardot, ExactTarget, Datorama, Marketing Intelligence, Journey Builder]
+    needs: [marketing automation, campaign management platform, email marketing platform, customer journeys, journey orchestration, lead nurturing, prospect nurturing, audience segmentation, customer segmentation, consent management, preference management, marketing analytics, cross channel marketing, customer communications platform, marketing CRM]
+    products: [Marketing Cloud, Account Engagement, Data 360, Agentforce]
+    patterns: [Consent-aware audience segmentation and personalised engagement journeys]
+    queries: [marketing automation tender, customer journey platform procurement]
+  - id: data
+    label: Customer data & governance
+    family: Data & integration
+    explicit: [Data Cloud, Data 360, Informatica]
+    needs: [customer data platform, master data management, master data, data quality, data cleansing, deduplication, identity resolution, data activation, data governance, data catalogue, data lineage, data harmonisation, data harmonization, zero copy, single customer view, customer 360, data unification, data federation]
+    contextual: [CDP, MDM, data platform, data migration]
+    products: [Data 360, Informatica, MuleSoft]
+    patterns: [Unified, governed customer and enterprise data with activation and integration]
+    queries: [single customer view procurement, master data management tender, data quality implementation]
+  - id: integration
+    label: Integration & APIs
+    family: Data & integration
+    explicit: [MuleSoft, Anypoint Platform]
+    needs: [systems integration, system integration, application integration, enterprise integration, API integration, API management, API gateway, API platform, API lifecycle, integration platform, iPaaS, enterprise service bus, legacy integration, legacy systems integration, data integration, data synchronisation, data synchronization, event driven architecture, middleware implementation]
+    contextual: [ESB, middleware, legacy systems, API]
+    products: [MuleSoft, Anypoint Platform, APIs, external integration services]
+    patterns: [Governed APIs and orchestration connecting existing and new systems]
+    queries: [systems integration procurement, API management tender, legacy integration programme]
+  - id: analytics
+    label: Analytics & business intelligence
+    family: Data & integration
+    explicit: [Tableau CRM, CRM Analytics, Einstein Analytics]
+    contextual: [Tableau, dashboards, reporting, BI]
+    needs: [business intelligence, BI platform, analytics platform, data visualisation, data visualization, executive dashboards, self service analytics, embedded analytics, operational analytics, customer analytics, sales analytics, performance reporting system, management information system, predictive analytics]
+    products: [Tableau, CRM Analytics, Data 360]
+    patterns: [Operational or customer analytics connected to trusted source systems]
+    queries: [business intelligence procurement, embedded analytics tender]
+  - id: field_service
+    label: Field service & operations
+    family: Service transformation
+    explicit: [Salesforce Field Service, Field Service Lightning]
+    needs: [mobile workforce management, workforce scheduling, field workforce scheduling, engineer scheduling, technician scheduling, work order platform, work order system, work order software, field operations platform, mobile workforce, field service management, route optimisation platform]
+    contextual: [dispatch, scheduling, field engineers, field inspections, maintenance scheduling, work orders]
+    products: [Salesforce Field Service, Service Cloud, MuleSoft]
+    patterns: [Scheduling, dispatch and work orders linked to customers, assets and mobile staff]
+    queries: [field service software tender, workforce scheduling platform]
+  - id: transformation
+    label: Digital implementation
+    family: Advisory & delivery
+    needs: [digital transformation, service transformation, business transformation, application modernisation, application modernization, legacy modernisation, legacy modernization, system consolidation, application consolidation, cloud application platform, managed runtime, application hosting platform]
+    explicit: [Heroku]
+    contextual: [PaaS, application support, cloud hosting]
+    products: [Salesforce Platform, Heroku, MuleSoft, customer-selected hosting]
+    patterns: [A delivery path must be stated or credibly mapped; generic advisory alone is adjacent]
+    queries: [digital transformation procurement, application modernisation tender]
+  - id: workflow
+    label: Workflow & low-code
+    family: AI & automation
+    needs: [workflow automation, business process automation, approval workflow, business process management, low code, no code, paperless process, replace spreadsheets, replace email based workflow, replace spreadsheets and emails, manual process automation, digital forms, electronic forms, internal business application, workflow platform, process orchestration]
+    products: [Salesforce Platform, Flow, Service Cloud, Heroku]
+    patterns: [Structured business records and approvals replacing disconnected manual work]
+    queries: [workflow automation procurement, replace spreadsheets workflow supplier]
+  - id: ai
+    label: AI agents & assistants
+    family: AI & automation
+    explicit: [Agentforce, Einstein GPT, Salesforce AI, OpenAI, ChatGPT, Claude, Anthropic, Gemini, Vertex AI, Azure OpenAI, Model Context Protocol]
+    needs: [artificial intelligence, AI agent, AI agents, enterprise AI, AI implementation, AI integration, AI assistant, intelligent assistant, digital assistant, virtual assistant, virtual agent, agentic AI, agentic workflow, autonomous agents, multi agent, agent orchestration, agent platform, AI customer service, enterprise agents, intelligent chatbot]
+    contextual: [AI, Einstein, copilot, MCP, Bedrock, agents SDK]
+    products: [Agentforce, OpenAI, Claude, Gemini, suitable LLM and agent stacks]
+    patterns: [Standalone or CRM-connected AI with retrieval, governed tools and deterministic business actions]
+    queries: [AI agent procurement, AI assistant tender, Agentforce]
+  - id: genai
+    label: Generative AI & language models
+    family: AI & automation
+    needs: [generative AI, GenAI, LLM, large language model, foundation model, LLM implementation, retrieval augmented generation, AI summarisation, AI summarization, AI transcription, natural language interface, conversational interface, generate responses]
+    contextual: [RAG]
+    products: [OpenAI, Claude, Gemini, customer-approved models]
+    patterns: [Grounded generation, summarisation and retrieval with evaluation and access controls]
+    queries: [generative AI tender, LLM implementation procurement]
+  - id: automation
+    label: Intelligent automation
+    family: AI & automation
+    needs: [intelligent automation, cognitive automation, automated triage, automatically triage cases, automatically classify incoming requests, automated decision support, automated correspondence, intelligent case handling, automated call handling, transcription and summarisation, sentiment analysis, personalised recommendations, automate repetitive knowledge work, automate customer conversations, automate employee support]
+    products: [Agentforce, external AI services, Flow, MuleSoft]
+    patterns: [AI-assisted intake, triage and knowledge workflows with human oversight]
+    queries: [intelligent automation procurement, automated triage tender]
+  - id: knowledge
+    label: Knowledge & document AI
+    family: AI & automation
+    needs: [enterprise search, semantic search, knowledge assistant, knowledge agent, document AI, document intelligence, document extraction, information extraction, automated document review, answer questions from internal documents, search corporate knowledge, reads our internal documents, knowledge sources, intelligent document processing]
+    contextual: [document processing, classification, knowledge management, knowledge base]
+    products: [External retrieval and LLM services, Agentforce, Data 360]
+    patterns: [Permission-aware retrieval and extraction from actual organisational knowledge]
+    queries: [document intelligence procurement, knowledge assistant tender]
+  - id: managed
+    label: Managed services & support
+    family: Advisory & delivery
+    needs: [Salesforce support, Salesforce maintenance, Salesforce enhancement, Salesforce managed service, CRM managed service, application maintenance, platform support, release management, Salesforce technical support, CRM support partner, ongoing enhancement]
+    products: [Salesforce ecosystem, integration and AI platforms]
+    patterns: [Technical support, optimisation and enhancements for relevant systems]
+    queries: [Salesforce managed services, CRM support tender]
+  - id: industry
+    label: Industry & public services
+    family: Service transformation
+    explicit: [Government Cloud, Nonprofit Cloud, Education Cloud, Health Cloud, Financial Services Cloud, Manufacturing Cloud, Automotive Cloud, Consumer Goods Cloud, Communications Cloud, Energy and Utilities Cloud, Media Cloud, Loyalty Management]
+    needs: [fundraising platform, donor management, supporter management, volunteer management, beneficiary management, grant management, student lifecycle, student success platform, student recruitment system, admissions platform, alumni management, learner engagement, citizen services platform, resident services platform, regulatory casework, patient engagement, care coordination platform, patient CRM]
+    products: [Salesforce industry solutions, Experience Cloud, Agentforce]
+    patterns: [Domain workflows and relationships, subject to actual specialist and eligibility requirements]
+    queries: [grant management system procurement, student services platform tender, patient engagement platform]
+  - id: external_integration
+    label: Enterprise system connections
+    family: Data & integration
+    needs: [integrate SAP with CRM, SAP integration, ERP integration, finance systems integration, customer platform integration, Dynamics integration, Salesforce integration, payment gateway integration, Stripe integration, legacy case system, integrate existing Dynamics, enterprise systems integration]
+    contextual: [SAP, Oracle, Microsoft, Dynamics, Business Central, Workday, ServiceNow, Stripe, Adyen, PayPal, Shopify, Magento, Teams, SharePoint, Microsoft 365, Google Workspace, AWS, Azure, GCP, Genesys, Twilio, Five9, ERP, EHR, EMR]
+    products: [MuleSoft, APIs, Data 360, customer-selected enterprise systems]
+    patterns: [Existing vendor products are integration context, not an exclusion by themselves]
+    queries: [CRM legacy integration procurement, enterprise integration partner]
+  - id: staffing
+    label: Technical consulting & resources
+    family: Advisory & delivery
+    needs: [Salesforce administrator, Salesforce developer, Salesforce architect, Salesforce consultant, Salesforce professional services, Salesforce implementation partner, CRM implementation partner, systems integrator, contract technical resources, technical staff augmentation]
+    products: [Salesforce ecosystem, AI and integration engineering]
+    patterns: [Supplier-delivered consulting or contract resources; not permanent employee recruitment]
+    queries: [Salesforce contract resources, Salesforce consulting tender]
+  - id: collaboration
+    label: Collaboration & employee workflows
+    family: AI & automation
+    explicit: [Slackbot, Slack AI]
+    contextual: [Slack]
+    needs: [enterprise collaboration platform, workflow collaboration, employee support automation, employee productivity platform]
+    products: [Slack, Agentforce, Salesforce Platform]
+    patterns: [Connected employee workflows and governed AI assistance]
+    queries: [collaboration workflow platform tender]
+  - id: pipeline
+    label: Future buying signals
+    family: Advisory & delivery
+    contextual: [commercial pipeline, procurement pipeline, upcoming procurement, preliminary market engagement, future opportunity]
+    needs: []
+    products: []
+    patterns: [A relevant technical or functional requirement is still needed before ranking]
+    queries: [commercial pipeline digital, procurement pipeline technology, CRM market engagement]

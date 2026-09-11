@@ -56,6 +56,7 @@ sources:
     collector: ocds_monthly
     source_type: official_notice
     url: https://api.sell2wales.gov.wales/v1/Notices
+    fallback_url: https://www.sell2wales.gov.wales/Search/Search_mainpage.aspx
     website: https://www.sell2wales.gov.wales
     docs: https://www.sell2wales.gov.wales/helpandresources/ocds/publicationpolicy
     record_url: https://api.sell2wales.gov.wales/v1/Notice?id={ocid}&locale=2057
@@ -96,14 +97,79 @@ sources:
     request_delay_seconds: 1
   - id: ted
     name: TED Europe
-    enabled: false
+    enabled: true
     collector: ted
     source_type: official_notice
     url: https://api.ted.europa.eu/v3/notices/search
     website: https://ted.europa.eu
     docs: https://docs.ted.europa.eu/ODS/latest/reuse/search-api.html
-    limit: 100
+    limit: 200
     country: EU
+    countries: [IT, SE, FI, DK, 'NO', IS, DE, ES, GR]
+    coverage: European public notices published on TED; national-only notices are not included.
+  - id: usaspending
+    name: USAspending
+    enabled: false
+    collector: usaspending
+    source_type: official_award
+    url: https://api.usaspending.gov/api/v2/search/spending_by_award/
+    website: https://www.usaspending.gov
+    docs: https://api.usaspending.gov/docs/endpoints
+    country: US
+    coverage: Federal contract awards and incumbent intelligence, not open tenders. Values are award obligations.
+    keywords: [Salesforce, MuleSoft, Agentforce, customer relationship management, generative AI, digital transformation]
+    lookback_days: 90
+    limit: 100
+  - id: germany
+    name: German Public Procurement
+    enabled: true
+    collector: german_daily
+    source_type: official_notice
+    url: https://oeffentlichevergabe.de/api/notice-exports
+    website: https://oeffentlichevergabe.de
+    docs: https://oeffentlichevergabe.de/documentation/api/opendata
+    country: DE
+    initial_lookback_days: 7
+    max_days_per_run: 3
+    record_url: https://oeffentlichevergabe.de/ui/de/notices/{ocid}
+    coverage: Completed daily national and EU notice exports, with original eForms submission deadlines.
+  - id: spain
+    name: Spanish Public Procurement
+    enabled: true
+    collector: spain_atom
+    source_type: official_notice
+    url: https://contrataciondelsectorpublico.gob.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom
+    website: https://contrataciondelsectorpublico.gob.es
+    docs: https://www.hacienda.gob.es/es-ES/GobiernoAbierto/Datos%20Abiertos/Paginas/LicitacionesContratante.aspx
+    country: ES
+    initial_lookback_days: 7
+    max_pages_per_run: 3
+    coverage: PLACSP contracting profiles excluding minor contracts. Source-local deadlines without an offset require notice verification.
+  - id: nyc_city_record
+    name: NYC City Record
+    enabled: true
+    collector: nyc_city_record
+    source_type: official_notice
+    url: https://data.cityofnewyork.us/resource/dg92-zbpx.json
+    website: https://a856-cityrecord.nyc.gov
+    docs: https://data.cityofnewyork.us/City-Government/City-Record-Online/dg92-zbpx
+    country: US
+    limit: 200
+    max_pages_per_run: 6
+    refresh_hours: 24
+    coverage: New York City procurement notices, including open solicitations and subsequent status changes.
+  - id: grants
+    name: Grants.gov
+    enabled: true
+    collector: grants
+    source_type: official_funding
+    url: https://api.grants.gov/v1/api/search2
+    detail_url: https://api.grants.gov/v1/api/fetchOpportunity
+    website: https://www.grants.gov
+    docs: https://www.grants.gov/api/api-guide
+    country: US
+    coverage: Federal funding and forecast opportunities. Applicant eligibility and local submission times must be checked in the source announcement.
+    keywords: ['"artificial intelligence"', '"digital transformation"', '"customer relationship management"']
   - {id: etenders_ni, name: eTendersNI, enabled: false, collector: external_adapter, website: 'https://etendersni.gov.uk', access: official API or supplier alerts}
   - {id: nhs_atamis, name: NHS Atamis, enabled: false, collector: external_adapter, website: 'https://health-family.force.com/s/Welcome', access: supplier alerts}
   - {id: nhs_supply_chain, name: NHS Supply Chain / Jaggaer, enabled: false, collector: external_adapter, website: 'https://www.supplychain.nhs.uk', access: official feed or supplier alerts}

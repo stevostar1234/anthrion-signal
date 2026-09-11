@@ -2,7 +2,9 @@ name: Collect intelligence and deploy
 
 on:
   schedule:
-    - cron: '15 6,10,14,18,22 * * *'
+    - cron: '15 6,10,14,18 * * *'
+      timezone: Europe/London
+    - cron: '55 8 * * *'
       timezone: Europe/London
   workflow_dispatch:
     inputs:
@@ -49,21 +51,11 @@ jobs:
       - run: pip install -e '.[test]'
       - run: npm ci
         working-directory: app
-      - uses: actions/cache@v4
-        with:
-          path: data/ai_cache
-          key: gemini-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: gemini-${{ runner.os }}-
       - name: Save previous publication signature
         run: python scripts/publication_state.py before
-      - name: Collect and analyse public intelligence
+      - name: Collect public opportunities
         if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.collect)
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
-          MAX_AI_CALLS_PER_RUN: ${{ vars.MAX_AI_CALLS_PER_RUN || '30' }}
-          AI_CONCURRENCY: ${{ vars.AI_CONCURRENCY || '2' }}
-          AI_MIN_PREFILTER_SCORE: ${{ vars.AI_MIN_PREFILTER_SCORE || '25' }}
           MAX_PAGES_PER_SOURCE: '80'
           PYTHONUNBUFFERED: '1'
         run: python -m anthrion_signal.cli ingest
@@ -106,6 +98,7 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: app/dist
+          retention-days: 1
       - name: Record run summary
         if: always()
         run: python scripts/run_summary.py

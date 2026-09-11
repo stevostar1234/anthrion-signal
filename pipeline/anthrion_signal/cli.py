@@ -5,23 +5,26 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, datetime
 from pathlib import Path
 
-from .collectors import COLLECTORS, Http, hydrate_sparse
-from .config import evidence_catalog, load_config
+from .collectors import Http, collect_with_backfill, hydrate_sparse
+from .config import capability_catalog, evidence_catalog, load_config
+from .discovery import is_public_opportunity, lifecycle, prefilter, ranking_key
 from .dedupe import reconcile
-from .intelligence import analyse_candidates, prefilter, score
 from .models import Dataset, Signal, SourceHealth
 from .normalise import NORMALISERS, set_hashes
 from .retention import archive_expired, restore_matching
 from .utils import atomic_bytes, atomic_json, digest, parse_date, read_json
 
+SCHEDULED_TIMES = ["06:15", "08:55", "10:15", "14:15", "18:15"]
+
 
 def _collect(source, previous_state, now, config, previous_signals=None):
     state = previous_state.get(source["id"], {})
     health = SourceHealth(id=source["id"], name=source["name"], website=source["website"], enabled=source["enabled"],
+                          countries=source.get("countries", [source["country"]] if source.get("country") else []), coverage=source.get("coverage"),
                           status="not_checked", last_success=state.get("last_success"), last_attempt=now.isoformat())
     http = Http(os.getenv("SIGNAL_USER_AGENT", "AnthrionSignal/1.0"))
     try:
-        result = COLLECTORS[source["collector"]](source, state, now, http, config["runtime"], config["search_terms"])
+        result = collect_with_backfill(source, state, now, http, config["runtime"], config["search_terms"], config["capabilities"])
         hydrate_sparse(result, source, now, http, config["runtime"])
         health.records = len(result.records)
         health.status = "healthy" if result.complete else "partial" if result.records else "failed"
@@ -35,7 +38,7 @@ def _collect(source, previous_state, now, config, previous_signals=None):
         for raw in sorted(result.records, key=lambda r: r.data.get("date") or ""):
             try:
                 signal = (NORMALISERS[raw.kind](raw, prior=families.get(raw.data.get("ocid")))
-                          if raw.kind == "ocds" else NORMALISERS[raw.kind](raw))
+                          if raw.kind in ("ocds", "german_ocds") else NORMALISERS[raw.kind](raw))
                 if signal:
                     normalised.append(signal)
                     if signal.ocid:
@@ -81,24 +84,31 @@ def derive_renewals(signals, now, config):
 
 def export(root):
     data = Dataset.model_validate(read_json(root / "data/current.json", {}))
+    data.signals = [s for s in data.signals if is_public_opportunity(s, datetime.now(UTC))]
     target = root / "app/public/data"
     target.mkdir(parents=True, exist_ok=True)
-    atomic_json(target / "current.json", data.model_dump())
+    atomic_json(target / "current.json", public_data(data))
     return data
+
+
+def public_data(dataset):
+    return dataset.model_dump(exclude={"signals": {"__all__": {
+        "analysis", "analysis_cache_key", "ai_status", "ai_model", "ai_scored_at", "fit_score",
+        "confidence_score", "known_weight", "score_components", "score_explanation", "recommendation",
+        "prefilter_score"}}, "run": {"gemini_calls", "cache_hits", "ai_failures", "candidates_shortlisted", "high_fit_signals"}})
 
 
 def run(root, args):
     config = load_config(root)
     now = datetime.now(UTC).replace(microsecond=0)
     runtime = config["runtime"]
+    runtime["refresh_daily"] = bool(getattr(args, "refresh_daily", False))
     if args.days is not None:
         runtime["lookback_days"] = args.days
     if args.max_pages is not None:
         runtime["max_pages"] = args.max_pages
-    if args.max_ai is not None:
-        runtime["max_ai_calls"] = args.max_ai
-    if args.no_ai:
-        runtime["max_ai_calls"] = 0
+    if args.max_ai:
+        raise ValueError("Model analysis has been removed. Collection uses source facts only.")
     state_path = root / "data/source_state.json"
     state = read_json(state_path, {})
     previous_data = read_json(root / "data/current.json", None)
@@ -109,6 +119,8 @@ def run(root, args):
     if wanted and not wanted.issubset({s["id"] for s in all_sources}):
         raise ValueError("Unknown source requested")
     selected = [s for s in all_sources if s["enabled"] and (not wanted or s["id"] in wanted)]
+    if getattr(args, "command", "ingest") == "rescore":
+        selected = []
     old_health = {s["id"]: s for s in (previous_data or {}).get("sources", [])}
     health = {}
     incoming, raw_count = [], 0
@@ -118,6 +130,8 @@ def run(root, args):
             id=source["id"], name=source["name"], website=source["website"], enabled=source["enabled"],
             status="not_checked" if source["enabled"] else "disabled")
         health[source["id"]].enabled = source["enabled"]
+        health[source["id"]].countries = source.get("countries", [source["country"]] if source.get("country") else [])
+        health[source["id"]].coverage = source.get("coverage")
         if not source["enabled"]:
             health[source["id"]].status = "disabled"
     with ThreadPoolExecutor(max_workers=3) as pool:
@@ -128,43 +142,50 @@ def run(root, args):
             state[sid], health[sid] = new_state, status
             raw_count += count
             print(f"{status.name}: {status.status}, {count} records", flush=True)
-    prefilter(incoming, config["company_profile"], config["search_terms"])
-    incoming = [s for s in incoming if s.prefilter_score >= 12 or any(s.ocid and s.ocid == p.ocid for p in previous)]
+    prefilter(incoming, config["company_profile"], config["search_terms"], config["capabilities"])
+    known_ids, known_ocids = {s.id for s in previous}, {s.ocid for s in previous if s.ocid}
+    known_aliases = {alias for s in previous for alias in s.external_ids}
+    # Sparse awards and cancellations must still retire a previously collected lead.
+    incoming = [s for s in incoming if s.prefilter_score >= config["capabilities"]["discovery"]["minimum_candidate_score"]
+                or s.id in known_ids or s.ocid in known_ocids or known_aliases.intersection(s.external_ids)]
     previous.extend(restore_matching(root, incoming, {s.id for s in previous}))
     signals, index, stats = reconcile(previous, incoming)
     signals = [s for s in signals if not (s.source == "govuk" and s.notice_type in
                ("person", "role", "organisation", "minister", "world_location", "statistics_announcement"))]
-    prefilter(signals, config["company_profile"], config["search_terms"])
-    print(f"Reconciled {len(signals)} candidates; analysing up to {runtime['max_ai_calls']} Gemini calls", flush=True)
-    ai_stats = analyse_candidates(signals, config, root, now)
+    prefilter(signals, config["company_profile"], config["search_terms"], config["capabilities"])
+    print(f"Reconciled {len(signals)} candidates; applying source-based discovery and availability rules", flush=True)
+    ai_stats = {"gemini_calls": 0, "cache_hits": 0, "ai_failures": 0}
     for s in signals:
-        score(s, config, now)
+        s.lifecycle_state, s.lifecycle_reason = lifecycle(s, now)
+        s.fit_score, s.confidence_score, s.known_weight = None, 0, 0
+        s.score_components, s.score_explanation, s.ai_status = [], "", "disabled"
     signals = archive_expired(root, signals, now, runtime["retention_days"])
-    current = list(signals)
-    for renewal in derive_renewals(signals, now, config):
-        score(renewal, config, now)
-        current.append(renewal)
-    current.sort(key=lambda s: (s.recommendation in ("PURSUE", "ENGAGE_NOW"), s.signal_type != "AWARD",
-                               s.fit_score if s.fit_score is not None else s.prefilter_score * .6,
-                               s.confidence_score), reverse=True)
-    content_digest = digest([(s.id, s.content_hash, s.analysis_cache_key, s.fit_score, s.recommendation) for s in current])
+    available = [s for s in signals if is_public_opportunity(s, now)]
+    current = [s for s in available if s.prefilter_score >= config["capabilities"]["discovery"]["minimum_candidate_score"]]
+    current.sort(key=lambda s: ranking_key(s, now))
+    content_digest = digest([(s.id, s.content_hash, s.delivery_priority, s.matched_capabilities, s.lifecycle_state) for s in current])
     same_content = (previous_data or {}).get("run", {}).get("content_digest") == content_digest
-    metadata = {"started_at": now.isoformat(), "finished_at": datetime.now(UTC).isoformat(),
+    metadata = {"started_at": now.isoformat(), "finished_at": datetime.now(UTC).isoformat(), "operation": getattr(args, "command", "ingest"),
+        "discovery_version": config["capabilities"]["version"],
         "sources_attempted": len(selected), "sources_succeeded": sum(health[s["id"]].status == "healthy" for s in selected),
-        "raw_records": raw_count, "canonical_signals": len(signals), "candidates_shortlisted": sum(s.prefilter_score >= runtime["ai_min_score"] for s in signals),
-        **stats, **ai_stats, "high_fit_signals": sum(s.fit_score is not None and s.fit_score >= 82 for s in current),
+        "raw_records": raw_count, "canonical_signals": len(signals), "candidates_shortlisted": sum(s.prefilter_score >= runtime["ai_min_score"] and not s.related_signal_id for s in current),
+        "public_signals": len(current), "suppressed_unavailable_signals": len(signals) - len(available),
+        "suppressed_scope_signals": len(available) - len(current),
+        "new_public_signals": sum(s.id not in known_ids for s in current),
+        **stats, **ai_stats, "high_fit_signals": sum(s.fit_score is not None and s.fit_score >= config["scoring"]["recommendation"]["strong_fit"] for s in current),
         "content_digest": content_digest, "content_changed": not same_content, "deployment_status": "awaiting_build",
-        "scheduled_timezone": "Europe/London", "scheduled_times": ["06:15", "10:15", "14:15", "18:15", "22:15"]}
-    dataset = Dataset(generated_at=now.isoformat(),
+        "scheduled_timezone": "Europe/London", "scheduled_times": SCHEDULED_TIMES}
+    dataset = Dataset(schema_version="2.0", generated_at=now.isoformat(),
         data_updated_at=previous_data["data_updated_at"] if same_content else now.isoformat(),
-        profile_version=config["company_profile"]["version"], scoring_version=config["scoring"]["version"], run=metadata,
-        sources=list(health.values()), capabilities=[{"id": c["id"], "label": c["label"], "family": c["family"]} for c in config["company_profile"]["capabilities"]],
-        markets=config["search_terms"]["markets"], evidence_catalog=evidence_catalog(config["company_profile"]), signals=current)
-    if not current and previous_data:
+        profile_version=config["company_profile"]["version"], scoring_version="none", run=metadata,
+        sources=list(health.values()), capabilities=[{"id": c["id"], "label": c["label"], "family": c["family"],
+            "search_terms": c.get("explicit", []) + c.get("needs", []) + c.get("aliases", [])} for c in config["capabilities"]["capabilities"]],
+        markets=config["search_terms"]["markets"], evidence_catalog={**evidence_catalog(config["company_profile"]), **capability_catalog(config)}, signals=current)
+    if not signals and previous_data:
         raise ValueError("Refusing to replace the previous public dataset with an empty dataset")
-    if not current:
+    if not signals:
         raise ValueError("No source records available; retry ingestion before publishing")
-    public = dataset.model_dump()
+    public = public_data(dataset)
     Dataset.model_validate(public)
     root.joinpath("data").mkdir(exist_ok=True)
     canonical_body = "\n".join(s.model_dump_json() for s in sorted(signals, key=lambda s: s.id)) + "\n"
@@ -185,14 +206,17 @@ def run(root, args):
 
 def main():
     parser = argparse.ArgumentParser(description="Collect, verify, rank and publish Anthrion opportunities")
-    parser.add_argument("command", choices=["ingest", "validate", "export"])
+    parser.add_argument("command", choices=["ingest", "rescore", "validate", "export"])
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--sources")
     parser.add_argument("--days", type=int)
     parser.add_argument("--max-pages", type=int)
+    parser.add_argument("--refresh-daily", action="store_true", help="Refresh daily snapshots without overriding provider retry delays")
     parser.add_argument("--max-ai", type=int)
     parser.add_argument("--no-ai", action="store_true")
     args = parser.parse_args()
+    if (args.days is not None and args.days < 1) or (args.max_pages is not None and args.max_pages < 1) or (args.max_ai is not None and args.max_ai < 0):
+        parser.error("Days and page budget must be positive; AI-call budget must be non-negative")
     root = args.root.resolve()
     if args.command == "validate":
         dataset = Dataset.model_validate(read_json(root / "data/current.json", {}))

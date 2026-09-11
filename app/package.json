@@ -13,16 +13,22 @@
     "format:check": "prettier --check src tests *.ts *.json index.html"
   },
   "dependencies": {
+    "@paper-design/shaders-react": "0.0.80",
+    "@tanstack/react-virtual": "3.14.11",
+    "embla-carousel-autoplay": "8.6.0",
+    "embla-carousel-react": "8.6.0",
     "lucide-react": "0.468.0",
     "motion": "12.23.26",
     "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "react-dom": "19.2.0",
+    "three": "0.180.0"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
     "@playwright/test": "1.58.2",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
+    "@types/three": "0.180.0",
     "@vitejs/plugin-react": "5.0.4",
     "prettier": "3.9.6",
     "typescript": "5.9.3",

@@ -65,8 +65,11 @@
 * {
   box-sizing: border-box;
   letter-spacing: 0;
-  scrollbar-width: thin;
-  scrollbar-color: var(--line-strong) transparent;
+  scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
 }
 body {
   margin: 0;
@@ -1565,6 +1568,7 @@ html:has(.compare-tray) {
   width: 940px;
 }
 .modal.drawer {
+  container: record / inline-size;
   width: 860px;
   max-width: calc(100% - 60px);
   height: 100dvh;
@@ -1602,7 +1606,7 @@ html:has(.compare-tray) {
 .detail-heading {
   padding: 29px 36px 24px;
   flex-shrink: 0;
-  max-height: 42dvh;
+  max-height: 40dvh;
   overflow-y: auto;
 }
 .detail-heading:focus-visible,
@@ -3190,6 +3194,9 @@ blockquote a {
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .modal.drawer {
+    animation: none;
+  }
   *,
   *::before,
   *::after {

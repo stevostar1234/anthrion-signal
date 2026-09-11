@@ -1,21 +1,17 @@
-version: "1.0.0"
+version: '2.0'
 weights:
-  capability: 35
-  references: 15
-  delivery: 10
-  sector: 10
-  geography: 5
-  commercial: 10
-  timing: 10
-  feasibility: 5
-match_strength: {DIRECT: 1.0, STRONG_ADJACENT: 0.75, WEAK_ADJACENT: 0.35, NONE: 0.0, UNKNOWN: null}
-reference_points: {MULTIPLE_DIRECT: 15, DIRECT_PLUS_ADJACENT: 12, ONE_DIRECT: 9, GENERIC: 5, NONE: 0, UNKNOWN: null}
-confidence: {rubric_coverage: 0.7, source_quality: 0.2, evidence_completeness: 0.1}
+  capability: 60
+  solution_route: 25
+  delivery: 15
+match_strength: {DIRECT: 1.0, STRONG: 0.8, PLAUSIBLE: 0.55, WEAK: 0.25, NONE: 0.0}
+route_points: {EXPLICIT_ECOSYSTEM: 25, VENDOR_NEUTRAL_DIRECT: 23, FUNCTIONAL_ARCHITECTURE: 20, ADJACENT: 15, INDIRECT: 8, NONE: 0}
+delivery_points: {BUILD: 15, IMPLEMENT_AND_ADVISE: 13, MANAGED_SUPPORT: 11, DISCOVERY: 9, CONTRACT_STAFF: 7, LICENCES: 4, NONE: 0}
+confidence: {source_authority: 0.4, requirements_completeness: 0.35, lifecycle_certainty: 0.25}
+completeness: {DETAILED: 100, SUMMARY: 65, SPARSE: 25}
 source_quality: {official_notice: 100, official_publication: 90, authoritative_portal: 75, secondary: 60}
 recommendation:
-  strong_fit: 82
-  plausible_fit: 72
+  strong_fit: 80
+  plausible_fit: 70
   minimum_confidence: 65
-  minimum_known_weight: 55
   closing_soon_days: 7
   renewal_horizon_days: 365

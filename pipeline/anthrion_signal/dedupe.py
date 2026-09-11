@@ -62,6 +62,9 @@ def merge(old, incoming):
             value = getattr(incoming, field)
             if value not in (None, "", [], "unknown"):
                 setattr(merged, field, value)
+        # NYC sometimes retains a placeholder date after explicitly postponing bids.
+        if incoming.source == "nyc_city_record" and incoming.status == "postponed" and incoming.deadline_at is None:
+            merged.deadline_at = None
         merged.raw_source_hash = incoming.raw_source_hash
         # Prefer current official notice facts over derivative publications.
         if incoming.source_type == "official_notice" or old.source_type != "official_notice":
