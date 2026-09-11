@@ -1,9 +1,9 @@
 {
-  "content": "11a62a7ae70595784ece59cf6ad43a01328c51a7f60721fe1272e21fb5235602",
+  "content": "cd8b6a8aaa6f3236344a19eea2b0285daf5d68f4bdcec2cb09f25694fdbadd27",
   "health": [
     [
       "find_tender",
-      "healthy"
+      "partial"
     ],
     [
       "contracts_finder",
@@ -11,11 +11,11 @@
     ],
     [
       "scotland",
-      "failed"
+      "partial"
     ],
     [
       "wales",
-      "failed"
+      "partial"
     ],
     [
       "govuk",
@@ -31,7 +31,27 @@
     ],
     [
       "ted",
+      "healthy"
+    ],
+    [
+      "usaspending",
       "disabled"
+    ],
+    [
+      "germany",
+      "partial"
+    ],
+    [
+      "spain",
+      "partial"
+    ],
+    [
+      "nyc_city_record",
+      "healthy"
+    ],
+    [
+      "grants",
+      "partial"
     ],
     [
       "etenders_ni",
