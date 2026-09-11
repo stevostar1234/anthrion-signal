@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Locator, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import type { Dataset } from '../src/types'
 
@@ -29,6 +29,37 @@ async function fixture(page: Page) {
   return data
 }
 const row = (page: Page, id: string) => page.locator(`[data-signal-id="visibility-${id}"]`)
+
+async function observeDeparture(target: Locator) {
+  return target.evaluateHandle((element) => {
+    const article = element.querySelector('article')!
+    const startX = article.getBoundingClientRect().x
+    const samples = { dustVisible: false, dustNonblank: false, leftwardTravel: 0, removed: false }
+    let frame = 0
+    // Observe each paint in the browser; protocol polling can miss a short animation.
+    const sample = () => {
+      if (!element.isConnected) {
+        samples.removed = true
+        return
+      }
+      samples.leftwardTravel = Math.max(
+        samples.leftwardTravel,
+        startX - article.getBoundingClientRect().x,
+      )
+      const canvas = element.querySelector<HTMLCanvasElement>('.dismiss-dust')
+      if (canvas && !samples.dustNonblank) {
+        const bounds = canvas.getBoundingClientRect()
+        samples.dustVisible ||= bounds.width > 0 && bounds.height > 0
+        const pixels = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data
+        samples.dustNonblank = pixels.some((value, index) => index % 4 === 3 && value > 0)
+      }
+      frame = requestAnimationFrame(sample)
+    }
+    frame = requestAnimationFrame(sample)
+    return { samples, stop: () => cancelAnimationFrame(frame) }
+  })
+}
+
 async function hiddenMode(page: Page) {
   await page.getByRole('button', { name: /^Sort opportunities:/ }).click()
   await page.getByRole('menuitemcheckbox', { name: 'Show hidden', exact: true }).click()
@@ -124,39 +155,37 @@ test('Added today counts first collection, not updates, and hidden records stay 
 
 test('hide dust is nonblank, rows close the gap, and Unhide slides the record left', async ({
   page,
-}, info) => {
+}) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   await page.goto('./?view=all')
   await expect(row(page, 'a')).toBeVisible()
   const initialY = (await row(page, 'b').boundingBox())!.y
-  await row(page, 'a').getByRole('checkbox').click()
-  const dust = row(page, 'a').locator('.dismiss-dust')
-  await expect(dust).toBeVisible()
-  await expect
-    .poll(
-      () =>
-        dust.evaluate((canvas: HTMLCanvasElement) => {
-          const pixels = canvas
-            .getContext('2d')!
-            .getImageData(0, 0, canvas.width, canvas.height).data
-          return pixels.some((value, index) => index % 4 === 3 && value > 0)
-        }),
-      { timeout: 500 },
-    )
-    .toBe(true)
-  await page.screenshot({ path: `../artifacts/hide-dust-${info.project.name}.png` })
+  const hideMotion = await observeDeparture(row(page, 'a'))
+  try {
+    await row(page, 'a').getByRole('checkbox').click()
+    await expect.poll(() => hideMotion.evaluate(({ samples }) => samples.removed)).toBe(true)
+    expect(await hideMotion.evaluate(({ samples }) => samples)).toMatchObject({
+      dustVisible: true,
+      dustNonblank: true,
+    })
+  } finally {
+    await hideMotion.evaluate((observer) => observer.stop())
+    await hideMotion.dispose()
+  }
   await expect(row(page, 'a')).toHaveCount(0)
   await expect.poll(async () => (await row(page, 'b').boundingBox())!.y).toBeLessThan(initialY - 40)
   await expect(page.locator('.dismiss-dust')).toHaveCount(0)
   await hiddenMode(page)
   await expect(row(page, 'a')).toBeVisible()
-  const startX = (await row(page, 'a').locator('article').boundingBox())!.x
-  await row(page, 'a').getByRole('checkbox').click()
-  await expect
-    .poll(async () => (await row(page, 'a').locator('article').boundingBox())?.x ?? -1000, {
-      timeout: 500,
-    })
-    .toBeLessThan(startX - 8)
+  const unhideMotion = await observeDeparture(row(page, 'a'))
+  try {
+    await row(page, 'a').getByRole('checkbox').click()
+    await expect.poll(() => unhideMotion.evaluate(({ samples }) => samples.removed)).toBe(true)
+    expect(await unhideMotion.evaluate(({ samples }) => samples.leftwardTravel)).toBeGreaterThan(8)
+  } finally {
+    await unhideMotion.evaluate((observer) => observer.stop())
+    await unhideMotion.dispose()
+  }
   await expect(row(page, 'a')).toHaveCount(0)
   await hiddenMode(page)
   await expect(row(page, 'a')).toBeVisible()
