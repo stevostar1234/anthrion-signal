@@ -193,7 +193,9 @@ export default function App() {
   )
   const [showHidden, setShowHidden] = useState(false)
   const [departing, setDeparting] = useState<Record<string, 'hide' | 'unhide'>>({})
-  const departureTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>())
+  const pendingDepartures = useRef(
+    new Map<string, { timer: ReturnType<typeof setTimeout>; complete: () => void }>(),
+  )
   const pendingRowFocus = useRef<number | null>(null)
   const reducedMotion = useReducedMotion()
   const [showFilters, setShowFilters] = useState(false)
@@ -211,7 +213,10 @@ export default function App() {
   const searchRef = useRef<HTMLInputElement>(null)
   const feedRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
-  useEffect(() => () => departureTimers.current.forEach(clearTimeout), [])
+  useEffect(() => () => pendingDepartures.current.forEach(({ timer }) => clearTimeout(timer)), [])
+  useEffect(() => {
+    if (reducedMotion) pendingDepartures.current.forEach(({ complete }) => complete())
+  }, [reducedMotion])
   const load = useCallback(async () => {
     abortRef.current?.abort()
     const controller = new AbortController()
@@ -362,13 +367,18 @@ export default function App() {
     return () => cancelAnimationFrame(frame)
   }, [hidden, filtered])
   const dismiss = (id: string) => {
-    if (departureTimers.current.has(id)) return
+    if (pendingDepartures.current.has(id)) return
     const restoring = hiddenIds.has(id)
     const focusOrigin = document.activeElement
     const hadRowFocus = !!feedRef.current
       ?.querySelector(`[data-signal-id="${CSS.escape(id)}"]`)
       ?.contains(focusOrigin)
+    let completed = false
     const commit = () => {
+      if (completed) return
+      completed = true
+      clearTimeout(pendingDepartures.current.get(id)?.timer)
+      pendingDepartures.current.delete(id)
       if (
         hadRowFocus &&
         (document.activeElement === focusOrigin || document.activeElement === document.body)
@@ -386,12 +396,15 @@ export default function App() {
         delete next[id]
         return next
       })
-      departureTimers.current.delete(id)
     }
     if (reducedMotion) commit()
     else {
       setDeparting((current) => ({ ...current, [id]: restoring ? 'unhide' : 'hide' }))
-      departureTimers.current.set(id, setTimeout(commit, restoring ? 380 : 620))
+      // Unhide follows the CSS animation, with a fallback if its row leaves the viewport.
+      pendingDepartures.current.set(id, {
+        timer: setTimeout(commit, restoring ? 2000 : 620),
+        complete: commit,
+      })
     }
   }
   useEffect(() => {
@@ -614,6 +627,9 @@ export default function App() {
                           saved={saved.includes(signal.id)}
                           hidden={hiddenIds.has(signal.id)}
                           departure={departing[signal.id]}
+                          onDepartureEnd={() =>
+                            pendingDepartures.current.get(signal.id)?.complete()
+                          }
                           onSave={() => toggleSave(signal.id)}
                           onOpen={(tab) => open(signal.id, tab)}
                           onHide={() => dismiss(signal.id)}
@@ -773,6 +789,7 @@ function SignalRow({
   saved,
   hidden,
   departure,
+  onDepartureEnd,
   onSave,
   onOpen,
   onHide,
@@ -783,6 +800,7 @@ function SignalRow({
   saved: boolean
   hidden: boolean
   departure?: 'hide' | 'unhide'
+  onDepartureEnd: () => void
   onSave: () => void
   onOpen: (tab?: string) => void
   onHide: () => void
@@ -792,6 +810,10 @@ function SignalRow({
     <div className="row-motion" data-signal-id={s.id} data-departure={departure}>
       <article
         className={`signal-row type-${s.signal_type.toLowerCase()} ${selected ? 'selected' : ''}`}
+        onAnimationEnd={(event) => {
+          if (event.target === event.currentTarget && event.animationName === 'restore-signal')
+            onDepartureEnd()
+        }}
         onClick={(event) => {
           if (!(event.target as HTMLElement).closest('button, input, label, a')) onOpen()
         }}

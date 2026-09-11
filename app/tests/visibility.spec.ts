@@ -211,6 +211,40 @@ test('glass reflections drift without rotating or resizing the refiners, and pau
   expect(await object.getAttribute('style')).toBe(paused)
 })
 
+test('Unhide completes after a delayed animation start and when reduced motion interrupts it', async ({
+  page,
+}) => {
+  await page.goto('./?view=all')
+  await row(page, 'a').getByRole('checkbox').click()
+  await expect(row(page, 'a')).toHaveCount(0)
+  await hiddenMode(page)
+  await expect(row(page, 'a')).toBeVisible()
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.addStyleTag({
+    content: ".row-motion[data-departure='unhide'] > .signal-row { animation-delay: 450ms; }",
+  })
+  const motion = await observeDeparture(row(page, 'a'))
+  try {
+    await row(page, 'a').getByRole('checkbox').click()
+    await expect.poll(() => motion.evaluate(({ samples }) => samples.removed)).toBe(true)
+    expect(await motion.evaluate(({ samples }) => samples.leftwardTravel)).toBeGreaterThan(8)
+  } finally {
+    await motion.evaluate((observer) => observer.stop())
+    await motion.dispose()
+  }
+  await hiddenMode(page)
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await row(page, 'a').getByRole('checkbox').click()
+  await expect(row(page, 'a')).toHaveCount(0)
+  await hiddenMode(page)
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await row(page, 'a').getByRole('checkbox').click()
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await expect(row(page, 'a')).toHaveCount(0)
+  await hiddenMode(page)
+  await expect(row(page, 'a')).toBeVisible()
+})
+
 test('hidden choices synchronize between tabs without clearing saved opportunities', async ({
   page,
   context,
