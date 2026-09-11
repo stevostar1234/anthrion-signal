@@ -33,9 +33,12 @@ export function DiscoveryCarousel({
   const host = useRef<HTMLDivElement>(null)
   const controls = useRef<(HTMLDivElement | null)[]>([])
   const pendingFocus = useRef<string | null>(null)
-  const initialIndex = Math.max(
-    0,
-    items.findIndex((item) => item.id === selected),
+  const requestLayout = useRef<(() => void) | null>(null)
+  const [initialIndex] = useState(() =>
+    Math.max(
+      0,
+      items.findIndex((item) => item.id === selected),
+    ),
   )
   const [viewport, api] = useEmblaCarousel({
     loop: true,
@@ -70,6 +73,21 @@ export function DiscoveryCarousel({
     mount.appendChild(renderer.domElement)
     objects.forEach((object) => scene.add(object))
     let lamp = brandLightPosition()
+    let focusFrame = 0
+    const focusPending = (attempt = 0) => {
+      focusFrame = 0
+      const id = pendingFocus.current
+      const button = controls.current
+        .find((control) => control?.dataset.category === id)
+        ?.querySelector('button')
+      if (button && getComputedStyle(button).visibility === 'visible') {
+        button.focus({ preventScroll: true })
+        if (document.activeElement === button && pendingFocus.current === id)
+          pendingFocus.current = null
+      }
+      if (pendingFocus.current && attempt < 3)
+        focusFrame = requestAnimationFrame(() => focusPending(attempt + 1))
+    }
 
     // Only the glass is projected in 3D. Its accessible text/control plane stays unscaled.
     const render = (now: number) => {
@@ -122,16 +140,13 @@ export function DiscoveryCarousel({
           control.style.height = `${faceHeight}px`
           control.style.visibility = visibility
           control.dataset.centred = String(centred)
-          if (
-            pendingFocus.current === object.element.dataset.category &&
-            visibility === 'visible'
-          ) {
-            control.querySelector('button')?.focus({ preventScroll: true })
-            pendingFocus.current = null
-          }
         }
       })
       renderer.render(scene, camera)
+      if (pendingFocus.current && !focusFrame) {
+        // Container-query styles must settle before an offscreen control can receive focus.
+        focusFrame = requestAnimationFrame(() => focusPending())
+      }
     }
     let frame = 0
     const schedule = () => {
@@ -141,6 +156,7 @@ export function DiscoveryCarousel({
           if (!document.hidden) render(now)
         })
     }
+    requestLayout.current = schedule
     const select = () => {
       setPosition(api.selectedScrollSnap())
       setCanScroll({ previous: api.canScrollPrev(), next: api.canScrollNext() })
@@ -194,7 +210,9 @@ export function DiscoveryCarousel({
     resumeLight()
     select()
     return () => {
+      requestLayout.current = null
       cancelAnimationFrame(frame)
+      cancelAnimationFrame(focusFrame)
       cancelAnimationFrame(lightFrame)
       lightObserver.disconnect()
       document.removeEventListener('visibilitychange', resumeLight)
@@ -290,6 +308,7 @@ export function DiscoveryCarousel({
                     event.preventDefault()
                     pendingFocus.current = items[next].id
                     select(next)
+                    requestLayout.current?.()
                   }
                 }}
               >

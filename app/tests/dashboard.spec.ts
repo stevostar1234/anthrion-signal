@@ -723,6 +723,10 @@ test('measured result windows reach every record without pagination or unbounded
 })
 
 test('exactly five refiners remain available across markets and empty states', async ({ page }) => {
+  if (page.viewportSize()!.width <= 900) {
+    const session = await page.context().newCDPSession(page)
+    await session.send('Emulation.setCPUThrottlingRate', { rate: 6 })
+  }
   const dataset = await isolatedDataset(page)
   const base = dataset.signals[0]
   dataset.signals = [{ ...base, countries: ['DE'] }]
@@ -764,17 +768,19 @@ test('exactly five refiners remain available across markets and empty states', a
     }
   }
   await (await selectDiscovery(page, 'Live Opportunities')).focus()
-  for (const label of [
-    'Pre-market',
-    'Closing Soon',
-    'Added today',
-    'All Signals',
-    'Live Opportunities',
-  ]) {
-    await page.keyboard.press('ArrowRight')
-    await expect(discoveryCard(page, label)).toBeFocused()
-    await expect(discoveryCard(page, label)).toHaveAttribute('aria-pressed', 'true')
-    await expect(page.locator('.feed-heading h1')).toHaveText(label)
+  for (let cycle = 0; cycle < 2; cycle++) {
+    for (const label of [
+      'Pre-market',
+      'Closing Soon',
+      'Added today',
+      'All Signals',
+      'Live Opportunities',
+    ]) {
+      await page.keyboard.press('ArrowRight')
+      await expect(discoveryCard(page, label)).toBeFocused()
+      await expect(discoveryCard(page, label)).toHaveAttribute('aria-pressed', 'true')
+      await expect(page.locator('.feed-heading h1')).toHaveText(label)
+    }
   }
   await selectDiscovery(page, 'Pre-market')
   await expect(page.locator('.feed-heading h1')).toHaveText('Pre-market')
