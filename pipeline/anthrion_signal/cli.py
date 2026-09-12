@@ -14,7 +14,7 @@ from .normalise import NORMALISERS, set_hashes
 from .retention import archive_expired, restore_matching
 from .utils import atomic_bytes, atomic_json, digest, parse_date, read_json
 
-SCHEDULED_TIMES = ["06:15", "08:55", "10:15", "14:15", "18:15"]
+SCHEDULED_TIMES = [f"{hour:02}:50" for hour in range(24)]
 
 
 def _collect(source, previous_state, now, config, previous_signals=None):
@@ -85,6 +85,7 @@ def derive_renewals(signals, now, config):
 def export(root):
     data = Dataset.model_validate(read_json(root / "data/current.json", {}))
     data.signals = [s for s in data.signals if is_public_opportunity(s, datetime.now(UTC))]
+    data.run.update(scheduled_timezone="Europe/London", scheduled_times=SCHEDULED_TIMES)
     target = root / "app/public/data"
     target.mkdir(parents=True, exist_ok=True)
     atomic_json(target / "current.json", public_data(data))

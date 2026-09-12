@@ -107,7 +107,9 @@ The same activation standard applies to EBRD, NATO/NCIA/NSPA and regional develo
 
 GitHub's ordinary anonymous REST allowance is 60 requests/hour/IP and authenticated personal access is generally 5,000/hour; the workflow token has its own repository allowance. These are not a monthly pool, and external procurement HTTP calls do not decrement them. Some endpoint classes and secondary limits differ.[^17]
 
-### Current Repository and Schedule
+### V1 Repository and Schedule Baseline
+
+Update, 12 September 2026: the schedule below is the historical five-run v1 baseline. The current workflow runs hourly at XX:50, including overnight (approximately 720-744 monthly ticks), with focused data-refresh browser checks and full regression on code changes and daily. See the README's Scheduling and Budget section for current operation. The calculations below are not the current hourly budget.
 
 Read-only public GitHub metadata reports `stevostar1234/anthrion-signal` as `private: false`, `visibility: public`, default branch `main`. This confirms the relevant repository condition; it does not reveal or imply the owner's personal paid plan or remaining private-repository allowance.[^1]
 

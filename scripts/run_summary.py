@@ -9,7 +9,14 @@ if path.exists():
         "new_signals": "New canonical signals", "material_updates": "Materially updated signals", "duplicates_merged": "Duplicates merged",
         "public_signals": "Published candidates", "new_public_signals": "New public candidates",
         "suppressed_unavailable_signals": "Unavailable records excluded", "suppressed_scope_signals": "Out-of-scope records excluded"}
-    body = "## Anthrion Signal\n\n| Metric | Count |\n| --- | ---: |\n" + "\n".join(f"| {label} | {run.get(key, 0)} |" for key, label in labels.items())
+    body = "## Anthrion Signal\n\n"
+    plan_path = Path("tmp/refresh-plan.json")
+    if plan_path.exists():
+        plan = json.loads(plan_path.read_text(encoding="utf-8"))
+        body += f"{plan['collection_reason']}. Collection step: {os.getenv('COLLECTION_OUTCOME', 'not reported')}.\n\n"
+        body += f"Browser verification planned: **{plan['test_mode']}**.\n\n"
+    body += f"Latest completed collection statistics ({run.get('finished_at', 'unknown time')}):\n\n"
+    body += "| Metric | Count |\n| --- | ---: |\n" + "\n".join(f"| {label} | {run.get(key, 0)} |" for key, label in labels.items())
     body += "\n\nDeployment outcome is reported by the GitHub Pages deployment job.\n"
     print(body)
     if os.getenv("GITHUB_STEP_SUMMARY"):

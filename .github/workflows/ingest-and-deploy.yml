@@ -2,9 +2,7 @@ name: Collect intelligence and deploy
 
 on:
   schedule:
-    - cron: '15 6,10,14,18 * * *'
-      timezone: Europe/London
-    - cron: '55 8 * * *'
+    - cron: '50 * * * *'
       timezone: Europe/London
   workflow_dispatch:
     inputs:
@@ -12,6 +10,10 @@ on:
         description: Collect new notices before deployment
         type: boolean
         default: true
+      full_tests:
+        description: Force the full desktop and mobile regression suite
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths-ignore: ['data/**', '**.md']
@@ -43,18 +45,18 @@ jobs:
           python-version: '3.12'
           cache: pip
           cache-dependency-path: pyproject.toml
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-          cache-dependency-path: app/package-lock.json
       - run: pip install -e '.[test]'
-      - run: npm ci
-        working-directory: app
+      - name: Plan collection and verification
+        id: plan
+        env:
+          COLLECT_REQUESTED: ${{ inputs.collect }}
+          FORCE_FULL_TESTS: ${{ inputs.full_tests }}
+        run: python scripts/refresh_plan.py plan
       - name: Save previous publication signature
         run: python scripts/publication_state.py before
       - name: Collect public opportunities
-        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.collect)
+        id: collect
+        if: steps.plan.outputs.collect == 'true'
         env:
           MAX_PAGES_PER_SOURCE: '80'
           PYTHONUNBUFFERED: '1'
@@ -62,27 +64,51 @@ jobs:
       - name: Validate pipeline and public dataset
         run: |
           python -m pytest -q
-          python -m ruff check pipeline
+          python -m ruff check pipeline scripts/refresh_plan.py
           python -m anthrion_signal.cli validate
           python -m anthrion_signal.cli export
           python scripts/check_public_output.py
+      - name: Detect meaningful publication changes
+        id: changed
+        env:
+          FORCE_DEPLOY: ${{ github.event_name != 'schedule' }}
+        run: python scripts/publication_state.py after
+      - uses: actions/setup-node@v4
+        if: steps.changed.outputs.deploy == 'true' || steps.plan.outputs.full_tests == 'true'
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+        if: steps.changed.outputs.deploy == 'true' || steps.plan.outputs.full_tests == 'true'
+        working-directory: app
       - name: Test and build dashboard
+        if: steps.changed.outputs.deploy == 'true' || steps.plan.outputs.full_tests == 'true'
         working-directory: app
         env:
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
         run: |
           npm test
           npm run build
-      - name: Browser smoke tests
+      - name: Install browser
+        if: steps.changed.outputs.deploy == 'true' || steps.plan.outputs.full_tests == 'true'
         working-directory: app
-        run: |
-          npx playwright install --with-deps chromium
-          npx playwright test
-      - name: Detect meaningful publication changes
-        id: changed
+        run: npx playwright install --with-deps chromium
+      - name: Full browser regression against production build
+        if: steps.plan.outputs.full_tests == 'true'
+        working-directory: app
         env:
-          FORCE_DEPLOY: ${{ github.event_name != 'schedule' }}
-        run: python scripts/publication_state.py after
+          SIGNAL_TEST_PREVIEW: 'true'
+        run: npx playwright test
+      - name: Data refresh desktop and mobile smoke tests
+        if: steps.changed.outputs.deploy == 'true' && steps.plan.outputs.full_tests != 'true'
+        working-directory: app
+        env:
+          SIGNAL_TEST_PREVIEW: 'true'
+        run: npx playwright test data-refresh.spec.ts
+      - name: Record successful full regression
+        if: steps.plan.outputs.full_tests == 'true'
+        run: python scripts/refresh_plan.py passed
       - name: Persist canonical state
         run: |
           git config user.name 'github-actions[bot]'
@@ -101,6 +127,8 @@ jobs:
           retention-days: 1
       - name: Record run summary
         if: always()
+        env:
+          COLLECTION_OUTCOME: ${{ steps.collect.outcome }}
         run: python scripts/run_summary.py
 
   deploy:

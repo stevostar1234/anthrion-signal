@@ -211,15 +211,15 @@ test('glass reflections drift without rotating or resizing the refiners, and pau
   expect(await object.getAttribute('style')).toBe(paused)
 })
 
-test('Unhide completes after a delayed animation start and when reduced motion interrupts it', async ({
-  page,
-}) => {
+test('Unhide completes after a delayed animation start', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.addInitScript(() =>
+    localStorage.setItem('anthrion-hidden-v1', JSON.stringify(['visibility-a'])),
+  )
   await page.goto('./?view=all')
-  await row(page, 'a').getByRole('checkbox').click()
   await expect(row(page, 'a')).toHaveCount(0)
   await hiddenMode(page)
   await expect(row(page, 'a')).toBeVisible()
-  await page.emulateMedia({ reducedMotion: 'no-preference' })
   await page.addStyleTag({
     content: ".row-motion[data-departure='unhide'] > .signal-row { animation-delay: 450ms; }",
   })
@@ -233,13 +233,24 @@ test('Unhide completes after a delayed animation start and when reduced motion i
     await motion.dispose()
   }
   await hiddenMode(page)
-  await page.emulateMedia({ reducedMotion: 'reduce' })
-  await row(page, 'a').getByRole('checkbox').click()
-  await expect(row(page, 'a')).toHaveCount(0)
-  await hiddenMode(page)
+  await expect(row(page, 'a')).toBeVisible()
+})
+
+test('reduced motion interrupts a pending Unhide animation', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.addInitScript(() =>
+    localStorage.setItem('anthrion-hidden-v1', JSON.stringify(['visibility-a'])),
+  )
+  await page.goto('./?view=all')
+  await hiddenMode(page)
+  await expect(row(page, 'a')).toBeVisible()
+  await page.addStyleTag({
+    content: ".row-motion[data-departure='unhide'] > .signal-row { animation-delay: 450ms; }",
+  })
   await row(page, 'a').getByRole('checkbox').click()
+  await expect(row(page, 'a')).toHaveAttribute('data-departure', 'unhide')
   await page.emulateMedia({ reducedMotion: 'reduce' })
+  await expect(page.locator('.discovery')).toHaveAttribute('data-light-motion', 'paused')
   await expect(row(page, 'a')).toHaveCount(0)
   await hiddenMode(page)
   await expect(row(page, 'a')).toBeVisible()

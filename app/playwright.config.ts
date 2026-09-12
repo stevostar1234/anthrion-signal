@@ -7,7 +7,7 @@ export default defineConfig({
   webServer: process.env.SIGNAL_TEST_URL
     ? undefined
     : {
-        command: 'npm run dev -- --host 127.0.0.1 --port 4174 --strictPort',
+        command: `npm run ${process.env.SIGNAL_TEST_PREVIEW === 'true' ? 'preview' : 'dev'} -- --host 127.0.0.1 --port 4174 --strictPort`,
         url: 'http://127.0.0.1:4174/anthrion-signal/',
         reuseExistingServer: !process.env.CI,
         timeout: 30000,

@@ -5,10 +5,12 @@
 3. No Gemini secret or model configuration is required. Retired Gemini environment variables are ignored; the workflow does not pass a model key to collection.
 4. In **Settings -> Pages -> Build and deployment -> Source**, choose **GitHub Actions**.
 5. In **Settings -> Actions -> General**, allow the repository's Actions workflows and the workflow's declared write permissions. The production build job commits only public data and checkpoints; the deploy job uses Pages and OIDC permissions.
-6. Open **Actions -> Collect intelligence and deploy -> Run workflow**. Choose `collect=true` for a fresh collection or `false` to publish the already-verified dataset.
+6. Open **Actions -> Collect intelligence and deploy -> Run workflow**. Choose `collect=true` for a fresh collection or `false` to publish existing data. Set `full_tests=true` to force full browser regression; otherwise it runs automatically when the code changes or a new day's full checks have not yet passed.
 7. Wait for the `build`, `deploy`, and `record-publication` jobs to finish. Open the Pages URL and review per-source health in the run metadata. Individual unavailable sources must not stop healthy sources or be counted as complete coverage.
 
-The schedule is set to **06:15, 08:55, 10:15, 14:15 and 18:15 Europe/London** in `.github/workflows/ingest-and-deploy.yml`, with daylight-saving handling. The morning 08:55 slot replaces 22:15, keeping five daily runs. GitHub schedules use the default branch and may start late; these are not guaranteed publication times. Avoid changing the workflow to use pull-request code with production secrets.
+The schedule is set to **XX:50 every hour, including overnight**, in `.github/workflows/ingest-and-deploy.yml`, with `Europe/London` timezone handling. All former slots are replaced. GitHub schedules use the default branch and may start late or be dropped; these are not guaranteed publication times. No visitor needs to be on the website. Avoid changing the workflow to use pull-request code with production secrets.
+
+Data-only publications run real-data desktop/mobile smoke tests against the production build. Full regression runs on code pushes and the first successful run of each day. `data/verification_state.json` records only successful full checks against a code fingerprint; do not edit it to bypass verification. Missing or invalid state requests full tests. Unchanged scheduled runs retain source checkpoints but skip unnecessary frontend work and repeat deployment. A 30-minute recent-collection guard prevents closely queued scheduled runs from repeatedly calling providers; explicit manual collections remain available.
 
 ## Local credentials
 
