@@ -1,5 +1,5 @@
 {
-  "content": "7d89713f1de42151bb404d0ce250c2dab6171f35b4d9ff800ace3c1514d987a9",
+  "content": "dfc52136dd5109de3143c9eac737ddc21fe7034656ff16055f5a2c5be463ff34",
   "health": [
     [
       "find_tender",
@@ -39,7 +39,7 @@
     ],
     [
       "germany",
-      "partial"
+      "healthy"
     ],
     [
       "spain",
