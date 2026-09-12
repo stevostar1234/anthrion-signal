@@ -1,5 +1,5 @@
 {
-  "content": "cd8b6a8aaa6f3236344a19eea2b0285daf5d68f4bdcec2cb09f25694fdbadd27",
+  "content": "7d89713f1de42151bb404d0ce250c2dab6171f35b4d9ff800ace3c1514d987a9",
   "health": [
     [
       "find_tender",
@@ -11,7 +11,7 @@
     ],
     [
       "scotland",
-      "partial"
+      "failed"
     ],
     [
       "wales",
@@ -23,7 +23,7 @@
     ],
     [
       "digital_outcomes",
-      "partial"
+      "healthy"
     ],
     [
       "upcoming_agreements",
@@ -134,5 +134,5 @@
       "disabled"
     ]
   ],
-  "day": "2026-09-11"
+  "day": "2026-09-12"
 }
