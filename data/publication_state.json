@@ -1,6 +1,6 @@
 {
   "code": "6c5fb7a2ebea1674d5f6dae4135f115ebd87ae17f40116b5b3835d42b2b3515d",
-  "content": "dfc52136dd5109de3143c9eac737ddc21fe7034656ff16055f5a2c5be463ff34",
+  "content": "d2783cd033a37bde47902e1ac35df3dc551a5a754a2fbbc6e501c65367d3cb5b",
   "health": [
     [
       "find_tender",
@@ -52,7 +52,7 @@
     ],
     [
       "grants",
-      "partial"
+      "healthy"
     ],
     [
       "etenders_ni",
